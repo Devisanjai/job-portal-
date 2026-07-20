@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Sign Up - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="max-w-md mx-auto my-24 px-4">
+    <h1 class="text-3xl font-bold mb-2 text-center">Create Your Account</h1>
+    <p class="text-gray-500 text-center mb-8">Join Deploynix and find your dream job</p>
+
+    <form method="post" class="bg-white border-2 border-gray-400 rounded-lg p-8 shadow-sm">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="bg-red-50 text-red-600 text-sm p-3 rounded mb-4">
+            Please correct the errors below.
+        </div>
+        {% endif %}
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Username</label>
+            {{ form.username }}
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Email</label>
+            {{ form.email }}
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">Password</label>
+            {{ form.password }}
+        </div>
+
+        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold">
+            Sign Up
+        </button>
+    </form>
+</div>
+
+{% endblock %}
