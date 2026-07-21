@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ service.title }} - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="max-w-3xl mx-auto my-24 px-4">
+    {% if service %}
+        <div class="membership-image-wrap" style="border-radius: 0.75rem; margin-bottom: 2rem;">
+            <img src="{% static 'core/assets/' %}{{ service.image }}" alt="{{ service.title }}" style="max-width: 300px;">
+        </div>
+
+        <h1 class="text-3xl font-bold mb-2">{{ service.title }}</h1>
+        <p class="text-gray-500 mb-6">{{ service.description }}</p>
+        <p class="text-gray-700 leading-relaxed">{{ service.details }}</p>
+
+        <a href="{% url 'home' %}" class="inline-block mt-8 text-red-600 font-semibold">← Back to Home</a>
+    {% else %}
+        <p>Service not found.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

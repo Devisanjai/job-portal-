@@ -4,7 +4,31 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from .forms import SignUpForm, EmployerLoginForm, JobSeekerLoginForm
 
+SERVICES_DATA = {
+    'premium-membership': {
+        'title': 'Premium Membership',
+        'description': 'Increase Your Chances of Getting Shortlisted',
+        'image': 'member.jpg',
+        'details': 'With Premium Membership, your profile gets priority visibility to recruiters, early access to job postings, and personalized career guidance to help you stand out from other applicants.',
+    },
+    'placement-paper': {
+        'title': 'Placement Paper',
+        'description': 'Practice & improve your skills',
+        'image': 'member1.png',
+        'details': 'Access a curated library of previous placement papers and mock tests from top companies to sharpen your technical and aptitude skills before your next interview.',
+    },
+    'interview-grooming': {
+        'title': 'Interview Grooming',
+        'description': 'Attend interviews confidently',
+        'image': 'member2.png',
+        'details': 'Get one-on-one mock interview sessions, feedback from industry experts, and tips on body language, communication, and technical presentation to walk into your interview with confidence.',
+    },
+}
 
+
+def service_detail(request, slug):
+    service = SERVICES_DATA.get(slug)
+    return render(request, 'core/service_detail.html', {'service': service, 'slug': slug})
 def home(request):
     return render(request, 'core/home.html')
 

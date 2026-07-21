@@ -21,23 +21,23 @@
     <button class="search-button">Search Jobs</button>
 </div>
 
-<div class="mt-24 overflow-hidden relative">
-    <div class="marquee-track flex items-center gap-16 opacity-80 w-max">
-        <img src="{% static 'core/assets/Wipro.png' %}" alt="Wipro" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Accenture.png' %}" alt="Accenture" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Ardhas.jpg' %}" alt="Ardhas" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/HCL.png' %}" alt="HCL" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Hexaware.png' %}" alt="Hexaware" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/microsoft.png' %}" alt="Microsoft" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Integra.jpg' %}" alt="Integra" class="h-14 w-36 object-contain">
+<div class="marquee-wrapper mt-2 overflow-hidden relative">
+    <div class="marquee-track flex items-center gap-6 opacity-80 w-max">
+        <div class="marquee-card"><img src="{% static 'core/assets/Wipro.png' %}" alt="Wipro" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Accenture.png' %}" alt="Accenture" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Ardhas.jpg' %}" alt="Ardhas" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/HCL.png' %}" alt="HCL" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Hexaware.png' %}" alt="Hexaware" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/microsoft.png' %}" alt="Microsoft" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Integra.jpg' %}" alt="Integra" class="h-10 w-28 object-contain"></div>
 
-        <img src="{% static 'core/assets/Wipro.png' %}" alt="Wipro" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Accenture.png' %}" alt="Accenture" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Ardhas.jpg' %}" alt="Ardhas" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/HCL.png' %}" alt="HCL" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Hexaware.png' %}" alt="Hexaware" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/microsoft.png' %}" alt="Microsoft" class="h-14 w-36 object-contain">
-        <img src="{% static 'core/assets/Integra.jpg' %}" alt="Integra" class="h-14 w-36 object-contain">
+        <div class="marquee-card"><img src="{% static 'core/assets/Wipro.png' %}" alt="Wipro" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Accenture.png' %}" alt="Accenture" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Ardhas.jpg' %}" alt="Ardhas" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/HCL.png' %}" alt="HCL" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Hexaware.png' %}" alt="Hexaware" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/microsoft.png' %}" alt="Microsoft" class="h-10 w-28 object-contain"></div>
+        <div class="marquee-card"><img src="{% static 'core/assets/Integra.jpg' %}" alt="Integra" class="h-10 w-28 object-contain"></div>
     </div>
 </div>
 
@@ -102,52 +102,83 @@
         </div>
     </div>
 
-    <p class="job-category-more">Show More Popular Job Searches ▾</p>
+    <div id="more-categories" class="job-category-grid job-category-hidden">
+        <div class="job-category-card">
+            <span class="job-category-icon icon-purple">🏛️</span>
+            <span class="font-medium">Education</span>
+        </div>
+        <div class="job-category-card highlighted">
+            <span class="job-category-icon icon-blue">🎧</span>
+            <span class="font-medium">Customer Support</span>
+        </div>
+        <div class="job-category-card">
+            <span class="job-category-icon icon-green">👥</span>
+            <span class="font-medium">HR</span>
+        </div>
+        <div class="job-category-card">
+            <span class="job-category-icon icon-purple">💻</span>
+            <span class="font-medium">Web Developer</span>
+        </div>
+    </div>
+
+    <p class="job-category-more" onclick="toggleCategories()">
+        <span id="toggle-text">Show More Popular Job Searches ▾</span>
+    </p>
 </div>
 
+<script>
+function toggleCategories() {
+    const moreSection = document.getElementById('more-categories');
+    const toggleText = document.getElementById('toggle-text');
 
-<div class="services-section">
-    <h2 class="services-heading">Services</h2>
+    if (moreSection.classList.contains('job-category-hidden')) {
+        moreSection.classList.remove('job-category-hidden');
+        toggleText.textContent = 'Show Less Popular Job Searches ▲';
+    } else {
+        moreSection.classList.add('job-category-hidden');
+        toggleText.textContent = 'Show More Popular Job Searches ▾';
+    }
+}
+</script>
+<div class="membership-section">
+    <h2 class="membership-heading">Services</h2>
+    <div class="membership-grid">
+        <div class="membership-card">
+            <div class="membership-image-wrap">
+                <img src="{% static 'core/assets/member.jpg' %}" alt="Premium Membership">
+            </div>
+            <div class="membership-body">
+                <h3 class="membership-title">Premium Membership</h3>
+                <p class="membership-text">Increase Your Chances of Getting Shortlisted</p>
+                <a href="{% url 'service_detail' 'premium-membership' %}" class="membership-link">Know More →</a>
+            </div>
+        </div>
 
-    <div class="services-grid">
-        <div class="service-card">
-            <span class="service-icon service-icon-blue">🖥️</span>
-            <p class="service-text">Create your profile and get discovered by top recruiters</p>
+        <div class="membership-card">
+            <div class="membership-image-wrap">
+                <img src="{% static 'core/assets/member2.png' %}" alt="Placement Paper">
+            </div>
+            <div class="membership-body">
+                <h3 class="membership-title">Placement Paper</h3>
+                <p class="membership-text">Practice & improve your skills</p>
+                <a href="{% url 'service_detail' 'placement-paper' %}" class="membership-link">Know More →</a>
+            </div>
         </div>
-        <div class="service-card">
-            <span class="service-icon service-icon-green">✅</span>
-            <p class="service-text">Apply to verified jobs with a single click</p>
+
+        <div class="membership-card">
+            <div class="membership-image-wrap">
+                <img src="{% static 'core/assets/member3.png' %}" alt="Interview Grooming">
+            </div>
+            <div class="membership-body">
+                <h3 class="membership-title">Interview Grooming</h3>
+                <p class="membership-text">Attend interviews confidently</p>
+                <a href="{% url 'service_detail' 'interview-grooming' %}" class="membership-link">Know More →</a>
+            </div>
         </div>
-        <div class="service-card">
-            <span class="service-icon service-icon-orange">🤝</span>
-            <p class="service-text">Connect directly with hiring managers</p>
-        </div>
+
     </div>
 </div>
 
-<div class="max-w-6xl mx-auto mt-16 px-4">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        <div class="border rounded-lg p-6">
-            <h3 class="font-bold text-lg mb-1">Premium Membership</h3>
-            <p class="text-gray-500 text-sm mb-4">Increase Your Chances of Getting Shortlisted</p>
-            <a href="#" class="text-red-500 text-sm font-semibold">Know More →</a>
-        </div>
-
-        <div class="border rounded-lg p-6">
-            <h3 class="font-bold text-lg mb-1">Placement Paper</h3>
-            <p class="text-gray-500 text-sm mb-4">Practice & improve your skills</p>
-            <a href="#" class="text-red-500 text-sm font-semibold">Know More →</a>
-        </div>
-
-        <div class="border rounded-lg p-6">
-            <h3 class="font-bold text-lg mb-1">Interview Grooming</h3>
-            <p class="text-gray-500 text-sm mb-4">Attend interviews confidently</p>
-            <a href="#" class="text-red-500 text-sm font-semibold">Know More →</a>
-        </div>
-
-    </div>
-</div>
 
 <div class="max-w-6xl mx-auto mt-24 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -229,8 +260,6 @@
                 <button class="w-full border rounded py-2 text-sm font-semibold">View details</button>
             </div>
         </div>
-
     </div>
 </div>
-
 {% endblock %}
