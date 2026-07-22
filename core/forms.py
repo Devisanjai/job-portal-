@@ -1,5 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
+from .models import Job
+from .models import Job, JobApplication
 
 class SignUpForm(forms.ModelForm):
     password = forms.CharField(
@@ -47,3 +49,82 @@ class JobSeekerLoginForm(forms.Form):
             'placeholder': 'Password'
         })
     )
+
+class JobPostForm(forms.ModelForm):
+    class Meta:
+        model = Job
+        fields = ['job_title', 'job_description', 'experience_required', 'job_type', 'location', 'number_of_openings', 'salary_range', 'skills_required']
+        widgets = {
+            'job_title': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. Frontend Developer'
+            }),
+            'job_description': forms.Textarea(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'Describe the role, responsibilities, and requirements',
+                'rows': 5
+            }),
+            'experience_required': forms.Select(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400'
+            }),
+            'job_type': forms.Select(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400'
+            }),
+            'location': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. Coimbatore, Tamil Nadu'
+            }),
+            'number_of_openings': forms.NumberInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'min': 1
+            }),
+            'salary_range': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. ₹3,00,000 - ₹5,00,000 per year'
+            }),
+            'skills_required': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. Python, Django, React'
+            }),
+        }
+
+
+
+class JobApplicationForm(forms.ModelForm):
+    class Meta:
+        model = JobApplication
+        fields = ['full_name', 'email', 'phone', 'education', 'skills', 'experience', 'resume', 'cover_note']
+        widgets = {
+            'full_name': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'Your full name'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'your.email@example.com'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': '10-digit phone number'
+            }),
+            'education': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. BSc Information Technology'
+            }),
+            'skills': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. Python, Django, MySQL'
+            }),
+            'experience': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. 1 year / Fresher'
+            }),
+            'resume': forms.ClearableFileInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm'
+            }),
+            'cover_note': forms.Textarea(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'Tell the employer why you\'re a good fit (optional)',
+                'rows': 4
+            }),
+        }

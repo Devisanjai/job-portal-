@@ -1,0 +1,90 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Post a Job - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-topbar">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+    </a>
+    <span>Welcome, {{ request.user.username }}</span>
+</div>
+
+<div class="dashboard-subnav">
+    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+    <a href="{% url 'jobs_list' %}">Jobs</a>
+    <div class="subnav-dropdown">
+        <a href="#">Candidates ▾</a>
+        <div class="subnav-dropdown-menu">
+            <a href="{% url 'new_applicants' %}">New Applicants</a>
+            <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+            <a href="{% url 'search_resume' %}">Search Resume</a>
+            <a href="{% url 'shortlisted' %}">Shortlisted</a>
+        </div>
+    </div>
+    <a href="#">Inquiries</a>
+    <a href="#">Settings</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="dashboard-panel" style="max-width: 700px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.5rem; margin: 0;">Post a New Job</h3>
+        <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back</a>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Job Title</label>
+            {{ form.job_title }}
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Job Description</label>
+            {{ form.job_description }}
+        </div>
+
+        <div class="mb-4" style="display: flex; gap: 1rem;">
+            <div style="flex: 1;">
+                <label class="block text-sm font-medium mb-1">Experience Required</label>
+                {{ form.experience_required }}
+            </div>
+            <div style="flex: 1;">
+                <label class="block text-sm font-medium mb-1">Job Type</label>
+                {{ form.job_type }}
+            </div>
+        </div>
+
+        <div class="mb-4" style="display: flex; gap: 1rem;">
+            <div style="flex: 1;">
+                <label class="block text-sm font-medium mb-1">Location</label>
+                {{ form.location }}
+            </div>
+            <div style="flex: 1;">
+                <label class="block text-sm font-medium mb-1">No. of Openings</label>
+                {{ form.number_of_openings }}
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Salary Range (optional)</label>
+            {{ form.salary_range }}
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">Skills Required</label>
+            {{ form.skills_required }}
+        </div>
+
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white py-3 px-8 rounded font-semibold">
+            Post Job
+        </button>
+    </form>
+</div>
+</div>
+
+{% endblock %}

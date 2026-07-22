@@ -1,0 +1,113 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Employer Dashboard - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-topbar">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+    </a>
+    <span>Welcome, {{ request.user.username }}</span>
+</div>
+
+<div class="dashboard-subnav">
+    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+    <a href="{% url 'jobs_list' %}">Jobs</a>
+    <div class="subnav-dropdown">
+    <a href="#">Candidates ▾</a>
+    <div class="subnav-dropdown-menu">
+        <a href="{% url 'new_applicants' %}">New Applicants</a>
+        <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+        <a href="{% url 'search_resume' %}">Search Resume</a>
+        <a href="{% url 'shortlisted' %}">Shortlisted</a>
+    </div>
+</div>
+    <a href="#">Inquiries</a>
+    <a href="#">Settings</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="dashboard-wrap">
+
+    <div class="dashboard-search-row">
+        <div style="display: flex; gap: 1rem; flex: 1; color: black;">
+            <input type="text" placeholder="Enter Job Roles / Skills">
+            <input type="text" placeholder="Enter Location">
+        </div>
+        <div class="dashboard-promo">
+            Access millions of verified resumes and post your job for free today!
+            <br>
+            <a href="{% url 'post_job' %}" class="dashboard-action-btn">Post New Job 💼</a>
+        </div>
+    </div>
+
+    <div class="dashboard-stats-grid">
+        <div class="dashboard-stat-card">
+            <h3>Current Openings</h3>
+            <div class="dashboard-stat-number">{{ current_openings }}</div>
+            <span class="dashboard-stat-icon">📋</span>
+            <div class="dashboard-stat-footer">{{ current_openings }} / 0 Total / Non-Active</div>
+        </div>
+        <div class="dashboard-stat-card">
+            <h3>Candidates</h3>
+            <div class="dashboard-stat-number">{{ candidates_total }}</div>
+            <span class="dashboard-stat-icon">👁️</span>
+            <div class="dashboard-stat-footer">{{ candidates_pending }} / 0 Pending / Approved</div>
+        </div>
+        <div class="dashboard-stat-card">
+            <h3>Interview List</h3>
+            <div class="dashboard-stat-number">{{ interview_list }}</div>
+            <span class="dashboard-stat-icon">🔔</span>
+            <div class="dashboard-stat-footer">0 / 0 Upcoming / Past</div>
+        </div>
+        <div class="dashboard-stat-card">
+            <h3>Inquiries</h3>
+            <div class="dashboard-stat-number">{{ inquiries_total }}</div>
+            <span class="dashboard-stat-icon">💼</span>
+            <div class="dashboard-stat-footer">0 / {{ inquiries_unread }} Read / Unread</div>
+        </div>
+    </div>
+
+    <div class="dashboard-actions-grid">
+        <a href="#" class="dashboard-action-btn">Post New Job 💼</a>
+        <a href="#" class="dashboard-action-btn">Add Candidate 👤</a>
+        <a href="#" class="dashboard-action-btn">Add Interview 🕐</a>
+        <a href="#" class="dashboard-action-btn">Search Resume 🔍</a>
+        <a href="#" class="dashboard-action-btn">Company Profile 🏢</a>
+    </div>
+
+    <div class="dashboard-panels-grid">
+        <div class="dashboard-panel">
+            <h3>Upcoming Interviews</h3>
+            {% for interview in upcoming_interviews %}
+            <div class="dashboard-list-item">
+                <div>
+                    <span class="dashboard-list-name">{{ interview.name }}</span>
+                    <span class="dashboard-badge {% if interview.status == 'Hire' %}badge-hire{% else %}badge-offer{% endif %}">{{ interview.status }}</span>
+                    <div class="dashboard-list-sub">{{ interview.role }}</div>
+                </div>
+                <div class="dashboard-list-date">{{ interview.date }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="dashboard-panel">
+            <h3>Recent Activity For Candidates</h3>
+            {% for activity in recent_activity %}
+            <div class="dashboard-list-item">
+                <div>
+                    <span class="dashboard-list-name">{{ activity.name }} changed status to</span>
+                    <span class="dashboard-badge {% if activity.status == 'Hire' %}badge-hire{% else %}badge-offer{% endif %}">{{ activity.status }}</span>
+                    <div class="dashboard-list-sub">{{ activity.note }}</div>
+                </div>
+                <div class="dashboard-list-date">{{ activity.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

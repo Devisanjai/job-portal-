@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Apply - {{ job.job_title }} - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="apply-page-wrap">
+    <div class="apply-header">
+        <div>
+            <div class="apply-job-title">Apply for {{ job.job_title }}</div>
+            <div class="apply-job-meta">{{ job.location }} • {{ job.get_job_type_display }}</div>
+        </div>
+        <a href="{% url 'job_detail' job.id %}" class="dashboard-btn">← Back</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="bg-white border-2 border-gray-400 rounded-lg p-8 shadow-sm">
+        {% csrf_token %}
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Full Name</label>
+            {{ form.full_name }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Email</label>
+            {{ form.email }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Phone Number</label>
+            {{ form.phone }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Education</label>
+            {{ form.education }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Skills</label>
+            {{ form.skills }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Experience</label>
+            {{ form.experience }}
+        </div>
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Resume (PDF/DOC)</label>
+            {{ form.resume }}
+        </div>
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">Cover Note (optional)</label>
+            {{ form.cover_note }}
+        </div>
+
+        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold">
+            Submit Application
+        </button>
+    </form>
+</div>
+
+{% endblock %}

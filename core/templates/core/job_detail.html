@@ -1,0 +1,78 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}{{ job.job_title }} - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-topbar">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+    </a>
+    <span>Welcome, {{ request.user.username }}</span>
+</div>
+
+<div class="dashboard-subnav">
+    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+    <a href="{% url 'jobs_list' %}">Jobs</a>
+    <div class="subnav-dropdown">
+    <a href="#">Candidates ▾</a>
+    <div class="subnav-dropdown-menu">
+        <a href="{% url 'new_applicants' %}">New Applicants</a>
+        <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+        <a href="{% url 'search_resume' %}">Search Resume</a>
+        <a href="{% url 'shortlisted' %}">Shortlisted</a>
+    </div>
+</div>
+    <a href="#">Inquiries</a>
+    <a href="#">Settings</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="dashboard-wrap">
+    <div class="dashboard-panel" style="max-width: 700px; margin: 0 auto;">
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ job.job_title }}</h3>
+        <p style="color: #6b7280; margin-bottom: 1.5rem;">Posted on {{ job.posted_at|date:"d M Y, h:i A" }}</p>
+
+        <div class="job-detail-row">
+            <span class="job-detail-label">Job Description</span>
+        </div>
+        <p style="padding: 0.75rem 0; color: #374151;">{{ job.job_description }}</p>
+
+        <div class="job-detail-row">
+            <span class="job-detail-label">Experience Required</span>
+            <span class="job-detail-value">{{ job.get_experience_required_display }}</span>
+        </div>
+        <div class="job-detail-row">
+            <span class="job-detail-label">Job Type</span>
+            <span class="job-detail-value">{{ job.get_job_type_display }}</span>
+        </div>
+        <div class="job-detail-row">
+            <span class="job-detail-label">Location</span>
+            <span class="job-detail-value">{{ job.location }}</span>
+        </div>
+        <div class="job-detail-row">
+            <span class="job-detail-label">Number of Openings</span>
+            <span class="job-detail-value">{{ job.number_of_openings }}</span>
+        </div>
+        {% if job.salary_range %}
+        <div class="job-detail-row">
+            <span class="job-detail-label">Salary Range</span>
+            <span class="job-detail-value">{{ job.salary_range }}</span>
+        </div>
+        {% endif %}
+        {% if job.skills_required %}
+        <div class="job-detail-row">
+            <span class="job-detail-label">Skills Required</span>
+            <span class="job-detail-value">{{ job.skills_required }}</span>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+            <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back to Dashboard</a>
+            <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-topbar">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+    </a>
+    <span>Welcome, {{ request.user.username }}</span>
+</div>
+
+<div class="dashboard-subnav">
+    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+    <a href="{% url 'jobs_list' %}">Jobs</a>
+    <div class="subnav-dropdown">
+        <a href="#">Candidates ▾</a>
+        <div class="subnav-dropdown-menu">
+            <a href="{% url 'new_applicants' %}">New Applicants</a>
+            <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+            <a href="{% url 'search_resume' %}">Search Resume</a>
+            <a href="{% url 'shortlisted' %}">Shortlisted</a>
+        </div>
+    </div>
+    <a href="#">Inquiries</a>
+    <a href="#">Settings</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="dashboard-wrap">
+    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">{{ page_title }}</h3>
+
+    {% if show_search %}
+    <form method="get" class="candidate-search-bar">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by skill (e.g. Python, Django)">
+        <button type="submit" class="dashboard-btn">Search</button>
+    </form>
+    {% endif %}
+
+    {% if applications %}
+    {% for app in applications %}
+    <div class="candidate-card">
+        <div>
+            <div class="candidate-name">{{ app.full_name }}</div>
+            <div class="candidate-meta">{{ app.email }} • {{ app.phone }}</div>
+            <div class="candidate-meta">{{ app.education }} • {{ app.experience }}</div>
+            <div class="candidate-meta">Skills: {{ app.skills }}</div>
+            <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
+            <br>
+            <a href="{{ app.resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
+        </div>
+        <div style="text-align: right;">
+            <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
+            <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top: 0.5rem;">
+                {% csrf_token %}
+                <select name="status" onchange="this.form.submit()" class="status-select">
+                    <option value="applied" {% if app.status == 'applied' %}selected{% endif %}>New Applicant</option>
+                    <option value="shortlisted" {% if app.status == 'shortlisted' %}selected{% endif %}>Shortlisted</option>
+                    <option value="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="hired" {% if app.status == 'hired' %}selected{% endif %}>Hired</option>
+                </select>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="jobs-empty">
+        <p>No candidates found here yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

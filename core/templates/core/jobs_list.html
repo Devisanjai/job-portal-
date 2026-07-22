@@ -1,0 +1,60 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}My Jobs - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-topbar">
+    <a href="{% url 'home' %}">
+        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+    </a>
+    <span>Welcome, {{ request.user.username }}</span>
+</div>
+
+<div class="dashboard-subnav">
+    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+    <a href="{% url 'jobs_list' %}">Jobs</a>
+    <div class="subnav-dropdown">
+    <a href="#">Candidates ▾</a>
+    <div class="subnav-dropdown-menu">
+        <a href="{% url 'new_applicants' %}">New Applicants</a>
+        <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+        <a href="{% url 'search_resume' %}">Search Resume</a>
+        <a href="{% url 'shortlisted' %}">Shortlisted</a>
+    </div>
+</div>
+    <a href="#">Inquiries</a>
+    <a href="#">Settings</a>
+    <a href="#">Reports</a>
+</div>
+
+<div class="dashboard-wrap">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.5rem; margin: 0;">My Posted Jobs</h3>
+        <a href="{% url 'post_job' %}" class="dashboard-btn">+ Post New Job</a>
+    </div>
+
+    {% if jobs %}
+    {% for job in jobs %}
+   <div class="job-list-card" style="text-decoration: none;">
+    <a href="{% url 'job_detail' job.id %}" style="text-decoration: none; color: inherit; flex: 1;">
+        <div class="job-list-title">{{ job.job_title }}</div>
+        <div class="job-list-meta">{{ job.location }} • {{ job.get_job_type_display }} • {{ job.get_experience_required_display }}</div>
+    </a>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <span class="job-list-openings">{{ job.number_of_openings }} Opening{{ job.number_of_openings|pluralize }}</span>
+        <a href="{% url 'apply_job' job.id %}" class="dashboard-btn" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Apply</a>
+    </div>
+</div>
+    {% endfor %}
+    {% else %}
+    <div class="jobs-empty">
+        <p>You haven't posted any jobs yet.</p>
+        <a href="{% url 'post_job' %}" class="dashboard-btn" style="margin-top: 1rem; display: inline-block;">Post Your
+            First Job</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
