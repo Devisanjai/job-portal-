@@ -761,7 +761,8 @@ body {
 }
 
 .candidate-meta {
-    color: #6b7280;
+    color: #000000;
+    font-weight: 500;
     font-size: 0.85rem;
     margin-bottom: 0.3rem;
 }
@@ -802,10 +803,198 @@ body {
 .candidate-resume-link:hover {
     text-decoration: underline;
 }
+
+.candidate-search-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr) auto;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+}
+
+.candidate-search-grid input {
+    border: 2px solid #9ca3af;
+    border-radius: 0.375rem;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}
+.candidate-search-grid input:focus {
+    border-color: #dc2626;
+}
+
+.candidate-search-grid button {
+    white-space: nowrap;
+    padding: 0.6rem 1.2rem;
+}
+
 .status-select {
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     padding: 0.3rem 0.5rem;
     font-size: 0.8rem;
     cursor: pointer;
+}
+
+
+/* Inquiries Page Theme */
+.inquiries-container {
+    padding: 20px;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.inquiries-header {
+    background: #e31b23;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.inquiries-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.search-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+}
+
+.search-filter input,
+.search-filter select {
+    padding: 10px 15px;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+}
+
+.search-filter input:focus,
+.search-filter select:focus {
+    border-color: #e31b23;
+    box-shadow: 0 0 0 2px rgba(227, 27, 35, 0.2);
+}
+
+.inquiries-table-wrapper {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.inquiries-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.inquiries-table thead {
+    background: #111827;
+    color: white;
+}
+
+.inquiries-table th {
+    padding: 14px 12px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.inquiries-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #111827;
+}
+
+.inquiries-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.candidate-name {
+    font-weight: bold;
+    color: #111827;
+}
+
+.candidate-email {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.status.unread {
+    background: #ffe5e5;
+    color: #e31b23;
+}
+
+.status.read {
+    background: #e5f0ff;
+    color: #2563eb;
+}
+
+.status.replied {
+    background: #e8f5e9;
+    color: #16a34a;
+}
+
+.status.closed {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-view,
+.btn-reply {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+.btn-view {
+    background: #111827;
+    color: white;
+}
+
+.btn-view:hover {
+    background: #000000;
+}
+
+.btn-reply {
+    background: #e31b23;
+    color: white;
+}
+
+.btn-reply:hover {
+    background: #c5161d;
+}
+
+.no-inquiries {
+    text-align: center;
+    padding: 30px;
+    color: #6b7280;
+    font-size: 15px;
 }

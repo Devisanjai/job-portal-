@@ -5,36 +5,16 @@
 
 {% block content %}
 
-<div class="dashboard-topbar">
-    <a href="{% url 'home' %}">
-        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
-    </a>
-    <span>Welcome, {{ request.user.username }}</span>
-</div>
-
-<div class="dashboard-subnav">
-    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
-    <a href="{% url 'jobs_list' %}">Jobs</a>
-    <div class="subnav-dropdown">
-        <a href="#">Candidates ▾</a>
-        <div class="subnav-dropdown-menu">
-            <a href="{% url 'new_applicants' %}">New Applicants</a>
-            <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
-            <a href="{% url 'search_resume' %}">Search Resume</a>
-            <a href="{% url 'shortlisted' %}">Shortlisted</a>
-        </div>
-    </div>
-    <a href="#">Inquiries</a>
-    <a href="#">Settings</a>
-    <a href="#">Reports</a>
-</div>
-
 <div class="dashboard-wrap">
     <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">{{ page_title }}</h3>
 
     {% if show_search %}
-    <form method="get" class="candidate-search-bar">
-        <input type="text" name="q" value="{{ search_query }}" placeholder="Search by skill (e.g. Python, Django)">
+    <form method="get" class="candidate-search-grid">
+        <input type="text" name="name" value="{{ search_values.name }}" placeholder="Name">
+        <input type="text" name="skills" value="{{ search_values.skills }}" placeholder="Skills (e.g. Python, Django)">
+        <input type="text" name="experience" value="{{ search_values.experience }}" placeholder="Experience">
+        <input type="text" name="education" value="{{ search_values.education }}" placeholder="Education">
+        <input type="text" name="location" value="{{ search_values.location }}" placeholder="Location">
         <button type="submit" class="dashboard-btn">Search</button>
     </form>
     {% endif %}
@@ -56,10 +36,11 @@
             <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top: 0.5rem;">
                 {% csrf_token %}
                 <select name="status" onchange="this.form.submit()" class="status-select">
-                    <option value="applied" {% if app.status == 'applied' %}selected{% endif %}>New Applicant</option>
-                    <option value="shortlisted" {% if app.status == 'shortlisted' %}selected{% endif %}>Shortlisted</option>
-                    <option value="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                    <option value="hired" {% if app.status == 'hired' %}selected{% endif %}>Hired</option>
+                    <option value ="applied" {% if app.status == 'applied' %}selected{% endif %}>New Applicant</option>
+                    <option value ="shortlisted" {% if app.status == 'shortlisted' %}selected{% endif %}>Shortlisted
+                    </option>
+                    <option value ="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value ="hired" {% if app.status == 'hired' %}selected{% endif %}>Hired</option>
                 </select>
             </form>
         </div>
@@ -71,5 +52,4 @@
     </div>
     {% endif %}
 </div>
-
 {% endblock %}

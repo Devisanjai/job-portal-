@@ -13,10 +13,11 @@ urlpatterns = [
     path('job/<int:job_id>/', views.job_detail, name='job_detail'),
     path('jobs/', views.jobs_list, name='jobs_list'),
     path('job/<int:job_id>/apply/', views.apply_job, name='apply_job'),
-    path('application-success/', views.application_success, name='application_success'),
     path('candidates/new/', views.new_applicants, name='new_applicants'),
     path('candidates/manage/', views.manage_candidates, name='manage_candidates'),
     path('candidates/search/', views.search_resume, name='search_resume'),
     path('candidates/shortlisted/', views.shortlisted, name='shortlisted'),
     path('application/<int:application_id>/status/', views.update_application_status, name='update_application_status'),
+    path('application-success/<int:job_id>/', views.application_success, name='application_success'),
+    path('inquiries/', views.inquiries, name='inquiries'),
 ]

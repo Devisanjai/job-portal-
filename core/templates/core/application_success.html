@@ -8,7 +8,7 @@
     <div class="success-icon">✅</div>
     <h1 class="text-2xl font-bold mb-2">Application Submitted!</h1>
     <p class="text-gray-500 mb-6">Your application has been sent to the employer. They'll reach out if you're shortlisted.</p>
-    <a href="{% url 'home' %}" class="dashboard-btn">Back to Home</a>
+    <a href="{% url 'job_detail' job.id %}" class="dashboard-btn">Back to Job</a>
 </div>
 
 {% endblock %}

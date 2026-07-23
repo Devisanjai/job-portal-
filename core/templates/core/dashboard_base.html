@@ -8,9 +8,33 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'core/css/style.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'core/css/style.css' %}?v=4">
 </head>
 <body style="padding-top: 0;">
+
+    <div class="dashboard-topbar">
+        <a href="{% url 'home' %}">
+            <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
+        </a>
+        <span>Welcome, {{ request.user.username }}</span>
+    </div>
+
+    <div class="dashboard-subnav">
+        <a href="{% url 'employer_dashboard' %}">Dashboard</a>
+        <a href="{% url 'jobs_list' %}">Jobs</a>
+        <div class="subnav-dropdown">
+            <a href="#">Candidates ▾</a>
+            <div class="subnav-dropdown-menu">
+                <a href="{% url 'new_applicants' %}">New Applicants</a>
+                <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
+                <a href="{% url 'search_resume' %}">Search Resume</a>
+                <a href="{% url 'shortlisted' %}">Shortlisted</a>
+            </div>
+        </div>
+        <a href="{% url 'inquiries' %}">Inquiries</a>
+        <a href="#">Settings</a>
+        <a href="#">Reports</a>
+    </div>
 
     {% block content %}
     {% endblock %}

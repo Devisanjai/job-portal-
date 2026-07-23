@@ -1,0 +1,60 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="inquiries-container">
+    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Inquiries Management</h3>
+
+    <div class="search-filter">
+        <input type="text" id="searchInput" placeholder="Search inquiries...">
+        <select id="statusFilter">
+            <option value="">All Status</option>
+            <option value="Unread">Unread</option>
+            <option value="Read">Read</option>
+            <option value="Replied">Replied</option>
+            <option value="Closed">Closed</option>
+        </select>
+    </div>
+
+    <div class="inquiries-table-wrapper">
+        <table class="inquiries-table">
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Subject</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inquiry in inquiries %}
+                <tr>
+                    <td>
+                        <strong>{{ inquiry.name }}</strong><br>
+                        {{ inquiry.email }}
+                    </td>
+                    <td>{{ inquiry.subject }}</td>
+                    <td>{{ inquiry.message|truncatechars:50 }}</td>
+                    <td>
+                        <span class="status {{ inquiry.status|lower }}">
+                            {{ inquiry.status }}
+                        </span>
+                    </td>
+                    <td>{{ inquiry.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <button class="btn-view">View</button>
+                        <button class="btn-reply">Reply</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="no-inquiries">No inquiries found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

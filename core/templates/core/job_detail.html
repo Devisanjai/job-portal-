@@ -5,30 +5,6 @@
 
 {% block content %}
 
-<div class="dashboard-topbar">
-    <a href="{% url 'home' %}">
-        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
-    </a>
-    <span>Welcome, {{ request.user.username }}</span>
-</div>
-
-<div class="dashboard-subnav">
-    <a href="{% url 'employer_dashboard' %}">Dashboard</a>
-    <a href="{% url 'jobs_list' %}">Jobs</a>
-    <div class="subnav-dropdown">
-    <a href="#">Candidates ▾</a>
-    <div class="subnav-dropdown-menu">
-        <a href="{% url 'new_applicants' %}">New Applicants</a>
-        <a href="{% url 'manage_candidates' %}">Manage Candidates</a>
-        <a href="{% url 'search_resume' %}">Search Resume</a>
-        <a href="{% url 'shortlisted' %}">Shortlisted</a>
-    </div>
-</div>
-    <a href="#">Inquiries</a>
-    <a href="#">Settings</a>
-    <a href="#">Reports</a>
-</div>
-
 <div class="dashboard-wrap">
     <div class="dashboard-panel" style="max-width: 700px; margin: 0 auto;">
         <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ job.job_title }}</h3>
@@ -74,5 +50,4 @@
         </div>
     </div>
 </div>
-
 {% endblock %}

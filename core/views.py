@@ -7,6 +7,9 @@ from .forms import SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostFor
 from .models import Job
 from .forms import SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm, JobApplicationForm
 from .models import Job, JobApplication
+from django.db.models import Q
+from .models import Inquiry
+
 
 SERVICES_DATA = {
     'premium-membership': {
@@ -190,11 +193,39 @@ def manage_candidates(request):
 
 @login_required(login_url='employer_login')
 def search_resume(request):
-    query = request.GET.get('q', '')
+    name = request.GET.get('name', '')
+    skills = request.GET.get('skills', '')
+    experience = request.GET.get('experience', '')
+    education = request.GET.get('education', '')
+    location = request.GET.get('location', '')
+
     applications = JobApplication.objects.filter(job__posted_by=request.user)
-    if query:
-        applications = applications.filter(skills__icontains=query)
-    return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'Search Resume', 'search_query': query, 'show_search': True})
+
+    if name:
+        applications = applications.filter(full_name__icontains=name)
+    if skills:
+        applications = applications.filter(skills__icontains=skills)
+    if experience:
+        applications = applications.filter(experience__icontains=experience)
+    if education:
+        applications = applications.filter(education__icontains=education)
+    if location:
+        applications = applications.filter(job__location__icontains=location)
+
+    applications = applications.order_by('-applied_at')
+
+    return render(request, 'core/candidates_list.html', {
+        'applications': applications,
+        'page_title': 'Search Resume',
+        'show_search': True,
+        'search_values': {
+            'name': name,
+            'skills': skills,
+            'experience': experience,
+            'education': education,
+            'location': location,
+        },
+    })
 
 
 @login_required(login_url='employer_login')
@@ -217,3 +248,29 @@ def update_application_status(request, application_id):
         application.save()
 
     return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
+
+def apply_job(request, job_id):
+    job = Job.objects.get(id=job_id)
+
+    if request.method == 'POST':
+        form = JobApplicationForm(request.POST, request.FILES)
+        if form.is_valid():
+            application = form.save(commit=False)
+            application.job = job
+            application.save()
+            return redirect('application_success', job_id=job.id)
+    else:
+        form = JobApplicationForm()
+
+    return render(request, 'core/apply_job.html', {'form': form, 'job': job})
+
+
+def application_success(request, job_id):
+    job = Job.objects.get(id=job_id)
+    return render(request, 'core/application_success.html', {'job': job})
+
+
+
+def inquiries(request):
+    inquiries = Inquiry.objects.all().order_by('-created_at')
+    return render(request, 'core/inquiries.html', {'inquiries': inquiries})
