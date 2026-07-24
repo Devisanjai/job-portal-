@@ -20,4 +20,6 @@ urlpatterns = [
     path('application/<int:application_id>/status/', views.update_application_status, name='update_application_status'),
     path('application-success/<int:job_id>/', views.application_success, name='application_success'),
     path('inquiries/', views.inquiries, name='inquiries'),
+    path('candidates/add/', views.add_candidate, name='add_candidate'),
+    path('interview/add/', views.add_interview, name='add_interview'),
 ]

@@ -3,13 +3,13 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm
-from .models import Job
-from .forms import SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm, JobApplicationForm
-from .models import Job, JobApplication
 from django.db.models import Q
-from .models import Inquiry
 
+from .forms import (
+    SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
+    JobApplicationForm, EmployerAddCandidateForm, InterviewForm
+)
+from .models import Job, JobApplication, Inquiry, Interview
 
 SERVICES_DATA = {
     'premium-membership': {
@@ -49,14 +49,11 @@ def signup(request):
             username = form.cleaned_data['username']
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-
             user = User.objects.create_user(username=username, email=email, password=password)
             user.save()
-
             return redirect('home')
     else:
         form = SignUpForm()
-
     return render(request, 'core/signup.html', {'form': form})
 
 
@@ -66,7 +63,6 @@ def employer_login(request):
         if form.is_valid():
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-
             try:
                 user_obj = User.objects.get(email=email)
                 username = user_obj.username
@@ -75,7 +71,6 @@ def employer_login(request):
                 return render(request, 'core/employer_login.html', {'form': form})
 
             user = authenticate(request, username=username, password=password)
-
             if user is not None:
                 login(request, user)
                 return redirect('employer_dashboard')
@@ -83,27 +78,25 @@ def employer_login(request):
                 messages.error(request, 'Incorrect password.')
     else:
         form = EmployerLoginForm()
-
     return render(request, 'core/employer_login.html', {'form': form})
 
 
 @login_required(login_url='employer_login')
 def employer_dashboard(request):
+    jobs = Job.objects.filter(posted_by=request.user)
+    applications = JobApplication.objects.filter(job__posted_by=request.user)
+    interviews = Interview.objects.filter(application__job__posted_by=request.user).order_by('scheduled_at')
+    upcoming_interviews = interviews.filter(status='scheduled')[:5]
+
     context = {
-        'current_openings': 7,
-        'candidates_total': 907,
-        'candidates_pending': 966,
-        'interview_list': 0,
+        'current_openings': jobs.count(),
+        'candidates_total': applications.count(),
+        'candidates_pending': applications.filter(status='applied').count(),
+        'interview_list': interviews.count(),
         'inquiries_total': 93,
         'inquiries_unread': 93,
-        'upcoming_interviews': [
-            {'name': 'Vijay Kumar', 'status': 'Hire', 'role': 'Urgent Requirement PHP Developer - Noida (3-6 yrs)', 'date': '11/01/2026 - 13:40 PM'},
-            {'name': 'Ramesh Kumar', 'status': 'Offer', 'role': 'Suitable Position For PHP Developer at Rajkot (1-2 yrs)', 'date': '11/01/2026 - 13:40 PM'},
-        ],
-        'recent_activity': [
-            {'name': 'Brijesh Kumar', 'status': 'Hire', 'note': 'Communication skills are good and have database and JavaScript knowledge. Preferred location is Delhi.', 'time': '1 month ago'},
-            {'name': 'Rajesh Kumar', 'status': 'Offer', 'note': 'Provide offer for candidate.', 'time': '1 month ago'},
-        ],
+        'upcoming_interviews': upcoming_interviews,
+        'recent_activity': applications.order_by('-applied_at')[:5],
     }
     return render(request, 'core/employer_dashboard.html', context)
 
@@ -118,9 +111,7 @@ def job_seeker_login(request):
         if form.is_valid():
             username = form.cleaned_data['username']
             password = form.cleaned_data['password']
-
             user = authenticate(request, username=username, password=password)
-
             if user is not None:
                 login(request, user)
                 return redirect('home')
@@ -128,7 +119,6 @@ def job_seeker_login(request):
                 messages.error(request, 'Invalid username or password.')
     else:
         form = JobSeekerLoginForm()
-
     return render(request, 'core/job_seeker_login.html', {'form': form})
 
 
@@ -143,7 +133,6 @@ def post_job(request):
             return redirect('job_detail', job_id=job.id)
     else:
         form = JobPostForm()
-
     return render(request, 'core/post_job.html', {'form': form})
 
 
@@ -152,31 +141,30 @@ def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
     return render(request, 'core/job_detail.html', {'job': job})
 
+
 @login_required(login_url='employer_login')
 def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
 
-
 def apply_job(request, job_id):
     job = Job.objects.get(id=job_id)
-
     if request.method == 'POST':
         form = JobApplicationForm(request.POST, request.FILES)
         if form.is_valid():
             application = form.save(commit=False)
             application.job = job
             application.save()
-            return redirect('application_success')
+            return redirect('application_success', job_id=job.id)
     else:
         form = JobApplicationForm()
-
     return render(request, 'core/apply_job.html', {'form': form, 'job': job})
 
 
-def application_success(request):
-    return render(request, 'core/application_success.html')
+def application_success(request, job_id):
+    job = Job.objects.get(id=job_id)
+    return render(request, 'core/application_success.html', {'job': job})
 
 
 @login_required(login_url='employer_login')
@@ -233,11 +221,11 @@ def shortlisted(request):
     applications = JobApplication.objects.filter(job__posted_by=request.user, status='shortlisted').order_by('-applied_at')
     return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'Shortlisted Candidates'})
 
+
 @login_required(login_url='employer_login')
 def update_application_status(request, application_id):
     application = JobApplication.objects.get(id=application_id)
 
-    # security check: make sure this employer owns the job this application is for
     if application.job.posted_by != request.user:
         messages.error(request, 'You are not authorized to do that.')
         return redirect('manage_candidates')
@@ -249,28 +237,33 @@ def update_application_status(request, application_id):
 
     return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
-def apply_job(request, job_id):
-    job = Job.objects.get(id=job_id)
-
-    if request.method == 'POST':
-        form = JobApplicationForm(request.POST, request.FILES)
-        if form.is_valid():
-            application = form.save(commit=False)
-            application.job = job
-            application.save()
-            return redirect('application_success', job_id=job.id)
-    else:
-        form = JobApplicationForm()
-
-    return render(request, 'core/apply_job.html', {'form': form, 'job': job})
-
-
-def application_success(request, job_id):
-    job = Job.objects.get(id=job_id)
-    return render(request, 'core/application_success.html', {'job': job})
-
-
 
 def inquiries(request):
     inquiries = Inquiry.objects.all().order_by('-created_at')
     return render(request, 'core/inquiries.html', {'inquiries': inquiries})
+
+
+@login_required(login_url='employer_login')
+def add_candidate(request):
+    if request.method == 'POST':
+        form = EmployerAddCandidateForm(request.POST, request.FILES, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Candidate added successfully.')
+            return redirect('manage_candidates')
+    else:
+        form = EmployerAddCandidateForm(user=request.user)
+    return render(request, 'core/add_candidate.html', {'form': form})
+
+
+@login_required(login_url='employer_login')
+def add_interview(request):
+    if request.method == 'POST':
+        form = InterviewForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Interview scheduled successfully.')
+            return redirect('employer_dashboard')
+    else:
+        form = InterviewForm(user=request.user)
+    return render(request, 'core/add_interview.html', {'form': form})

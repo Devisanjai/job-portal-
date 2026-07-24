@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import Job
 from .models import Job, JobApplication
+from .models import Job, JobApplication, Interview
 
 class SignUpForm(forms.ModelForm):
     password = forms.CharField(
@@ -128,3 +129,28 @@ class JobApplicationForm(forms.ModelForm):
                 'rows': 4
             }),
         }
+
+class EmployerAddCandidateForm(forms.ModelForm):
+    class Meta:
+        model = JobApplication
+        fields = ['job', 'full_name', 'email', 'phone', 'education', 'skills', 'experience', 'resume', 'status']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['job'].queryset = Job.objects.filter(posted_by=user)
+
+class InterviewForm(forms.ModelForm):
+    class Meta:
+        model = Interview
+        fields = ['application', 'scheduled_at', 'status', 'notes']
+        widgets = {
+            'scheduled_at': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['application'].queryset = JobApplication.objects.filter(job__posted_by=user)

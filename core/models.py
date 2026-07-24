@@ -88,3 +88,22 @@ class Inquiry(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.subject}"
+
+
+class Interview(models.Model):
+    STATUS_CHOICES = [
+        ('scheduled', 'Scheduled'),
+        ('hire', 'Hire'),
+        ('offer', 'Offer'),
+        ('reject', 'Reject'),
+        ('completed', 'Completed'),
+    ]
+
+    application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='interviews')
+    scheduled_at = models.DateTimeField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Interview: {self.application.full_name} - {self.scheduled_at.strftime('%d/%m/%Y')}"

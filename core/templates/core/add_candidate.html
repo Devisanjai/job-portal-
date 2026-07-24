@@ -1,0 +1,28 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Add Candidate - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-wrap">
+    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Add Candidate</h3>
+
+    <form method="post" enctype="multipart/form-data" class="add-candidate-form">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group {% if field.name == 'skills' or field.name == 'job' %}form-group-full{% endif %}">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="form-error">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="dashboard-btn">Add Candidate</button>
+    </form>
+</div>
+
+{% endblock %}

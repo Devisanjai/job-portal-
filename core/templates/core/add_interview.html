@@ -1,0 +1,28 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Add Interview - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-wrap">
+    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Schedule Interview</h3>
+
+    <form method="post" class="add-candidate-form">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group {% if field.name == 'notes' or field.name == 'application' %}form-group-full{% endif %}">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="form-error">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="dashboard-btn">Schedule Interview</button>
+    </form>
+</div>
+
+{% endblock %}
