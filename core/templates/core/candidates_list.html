@@ -23,24 +23,26 @@
     {% for app in applications %}
     <div class="candidate-card">
         <div>
-            <div class="candidate-name">{{ app.full_name }}</div>
-            <div class="candidate-meta">{{ app.email }} • {{ app.phone }}</div>
-            <div class="candidate-meta">{{ app.education }} • {{ app.experience }}</div>
-            <div class="candidate-meta">Skills: {{ app.skills }}</div>
+            <div class="candidate-name">{{ app.display_full_name }}</div>
+            <div class="candidate-meta">{{ app.display_email }} • {{ app.display_phone }}</div>
+            <div class="candidate-meta">{{ app.display_education }} • {{ app.display_experience }}</div>
+            <div class="candidate-meta">Skills: {{ app.display_skills }}</div>
             <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
             <br>
-            <a href="{{ app.resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
+            {% if app.display_resume %}
+            <a href="{{ app.display_resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
+            {% endif %}
         </div>
         <div style="text-align: right;">
             <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
             <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top: 0.5rem;">
                 {% csrf_token %}
                 <select name="status" onchange="this.form.submit()" class="status-select">
-                    <option value ="applied" {% if app.status == 'applied' %}selected{% endif %}>New Applicant</option>
-                    <option value ="shortlisted" {% if app.status == 'shortlisted' %}selected{% endif %}>Shortlisted
+                    <option value="applied" {% if app.status=='applied' %}selected{% endif %}>New Applicant</option>
+                    <option value="shortlisted" {% if app.status=='shortlisted' %}selected{% endif %}>Shortlisted
                     </option>
-                    <option value ="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                    <option value ="hired" {% if app.status == 'hired' %}selected{% endif %}>Hired</option>
+                    <option value="rejected" {% if app.status=='rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="hired" {% if app.status=='hired' %}selected{% endif %}>Hired</option>
                 </select>
             </form>
         </div>

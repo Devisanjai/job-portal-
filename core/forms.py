@@ -1,8 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Job
-from .models import Job, JobApplication
-from .models import Job, JobApplication, Interview
+from .models import Job, JobApplication, Interview, JobSeekerProfile
 
 class SignUpForm(forms.ModelForm):
     password = forms.CharField(
@@ -50,6 +48,11 @@ class JobSeekerLoginForm(forms.Form):
             'placeholder': 'Password'
         })
     )
+
+class JobSeekerProfileForm(forms.ModelForm):
+    class Meta:
+        model = JobSeekerProfile
+        fields = ['full_name', 'phone', 'location', 'education', 'certificates', 'skills', 'experience', 'preferred_job_type', 'resume']
 
 class JobPostForm(forms.ModelForm):
     class Meta:

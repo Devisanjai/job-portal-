@@ -22,4 +22,6 @@ urlpatterns = [
     path('inquiries/', views.inquiries, name='inquiries'),
     path('candidates/add/', views.add_candidate, name='add_candidate'),
     path('interview/add/', views.add_interview, name='add_interview'),
+    path('profile/create/', views.create_profile, name='create_profile'),
+    path('profile/edit/', views.edit_profile, name='edit_profile'),
 ]

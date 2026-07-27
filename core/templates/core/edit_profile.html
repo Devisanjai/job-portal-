@@ -1,0 +1,29 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Edit Profile - Deploynix{% endblock %}
+
+{% block content %}
+
+<div class="apply-page-wrap">
+    <h2 class="apply-job-title">Edit Your Profile</h2>
+    <p class="apply-job-meta">Update your details below. Changes apply to all your existing applications.</p>
+
+    <form method="post" enctype="multipart/form-data" class="add-candidate-form">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form %}
+            <div class="form-group {% if field.name == 'certificates' or field.name == 'skills' %}form-group-full{% endif %}">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div class="form-error">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <button type="submit" class="dashboard-btn">Update Profile</button>
+    </form>
+</div>
+
+{% endblock %}

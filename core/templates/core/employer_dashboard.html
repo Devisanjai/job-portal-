@@ -62,7 +62,7 @@
         {% for interview in upcoming_interviews %}
         <div class="dashboard-list-item">
             <div>
-                <span class="dashboard-list-name">{{ interview.application.full_name }}</span>
+                <span class="dashboard-list-name">{{ interview.application.display_full_name }}</span>
                 <span
                     class="dashboard-badge {% if interview.status == 'hire' %}badge-hire{% else %}badge-offer{% endif %}">{{
                     interview.get_status_display }}</span>
@@ -80,7 +80,7 @@
         {% for app in recent_activity %}
         <div class="dashboard-list-item">
             <div>
-                <span class="dashboard-list-name">{{ app.full_name }}</span>
+                <span class="dashboard-list-name">{{ app.display_full_name }}</span>
                 <div class="dashboard-list-sub">Applied for {{ app.job.job_title }}</div>
             </div>
             <div class="dashboard-list-date">{{ app.applied_at|date:"d M Y" }}</div>

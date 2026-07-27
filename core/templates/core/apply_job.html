@@ -14,45 +14,23 @@
         <a href="{% url 'job_detail' job.id %}" class="dashboard-btn">← Back</a>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="bg-white border-2 border-gray-400 rounded-lg p-8 shadow-sm">
+    <div class="candidate-card" style="display: block;">
+        <div class="candidate-name">{{ profile.full_name }}</div>
+        <div class="candidate-meta">{{ profile.location }} • {{ profile.phone }}</div>
+        <div class="candidate-meta">{{ profile.education }} • {{ profile.experience }}</div>
+        <div class="candidate-meta">Skills: {{ profile.skills }}</div>
+        {% if profile.resume %}
+        <a href="{{ profile.resume.url }}" target="_blank" class="candidate-resume-link">📄 View my resume</a>
+        {% endif %}
+    </div>
+
+    <p style="margin: 1.5rem 0; color: #6b7280; font-size: 0.9rem;">
+        Not accurate? <a href="{% url 'edit_profile' %}" style="color: #dc2626; font-weight: 600;">Update your profile</a> before applying.
+    </p>
+
+    <form method="post">
         {% csrf_token %}
-
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Full Name</label>
-            {{ form.full_name }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Email</label>
-            {{ form.email }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Phone Number</label>
-            {{ form.phone }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Education</label>
-            {{ form.education }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Skills</label>
-            {{ form.skills }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Experience</label>
-            {{ form.experience }}
-        </div>
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-1">Resume (PDF/DOC)</label>
-            {{ form.resume }}
-        </div>
-        <div class="mb-6">
-            <label class="block text-sm font-medium mb-1">Cover Note (optional)</label>
-            {{ form.cover_note }}
-        </div>
-
-        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold">
-            Submit Application
-        </button>
+        <button type="submit" class="dashboard-btn">Confirm & Apply</button>
     </form>
 </div>
 

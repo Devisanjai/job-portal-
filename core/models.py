@@ -54,21 +54,56 @@ class JobApplication(models.Model):
     ]
 
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='applications')
-    full_name = models.CharField(max_length=200)
-    email = models.EmailField()
-    phone = models.CharField(max_length=15)
-    education = models.CharField(max_length=200)
-    skills = models.CharField(max_length=300, help_text="Comma-separated skills")
-    experience = models.CharField(max_length=100)
-    resume = models.FileField(upload_to='resumes/')
+
+    # Linked path — set when a logged-in job seeker with a profile applies
+    job_seeker_profile = models.ForeignKey(
+    'JobSeekerProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='applications'
+)
+
+    # Walk-in path — used only when job_seeker_profile is null (employer manually added this candidate)
+    full_name = models.CharField(max_length=200, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=15, blank=True)
+    education = models.CharField(max_length=200, blank=True)
+    skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
+    experience = models.CharField(max_length=100, blank=True)
+    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+
     cover_note = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.full_name} - {self.job.job_title}"
+        return f"{self.display_full_name} - {self.job.job_title}"
 
+    # --- Helpers so templates always show current data, whichever path was used ---
+    @property
+    def display_full_name(self):
+        return self.job_seeker_profile.full_name if self.job_seeker_profile else self.full_name
 
+    @property
+    def display_email(self):
+        return self.job_seeker_profile.user.email if self.job_seeker_profile else self.email
+
+    @property
+    def display_phone(self):
+        return self.job_seeker_profile.phone if self.job_seeker_profile else self.phone
+
+    @property
+    def display_education(self):
+        return self.job_seeker_profile.education if self.job_seeker_profile else self.education
+
+    @property
+    def display_skills(self):
+        return self.job_seeker_profile.skills if self.job_seeker_profile else self.skills
+
+    @property
+    def display_experience(self):
+        return self.job_seeker_profile.experience if self.job_seeker_profile else self.experience
+
+    @property
+    def display_resume(self):
+        return self.job_seeker_profile.resume if self.job_seeker_profile else self.resume
 
 class Inquiry(models.Model):
     STATUS_CHOICES = [
@@ -107,3 +142,61 @@ class Interview(models.Model):
 
     def __str__(self):
         return f"Interview: {self.application.full_name} - {self.scheduled_at.strftime('%d/%m/%Y')}"
+
+
+class JobSeekerProfile(models.Model):
+    JOB_TYPE_CHOICES = [
+        ('full-time', 'Full-time'),
+        ('part-time', 'Part-time'),
+        ('internship', 'Internship'),
+        ('remote', 'Remote'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='jobseeker_profile')
+    full_name = models.CharField(max_length=200)
+    phone = models.CharField(max_length=15)
+    location = models.CharField(max_length=150, blank=True)
+    education = models.CharField(max_length=200, blank=True)
+    certificates = models.TextField(blank=True, help_text="List certificates, one per line or comma-separated")
+    skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
+    experience = models.CharField(max_length=100, blank=True)
+    preferred_job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, blank=True)
+    resume = models.FileField(upload_to='profile_resumes/', blank=True, null=True)
+    ats_score = models.PositiveIntegerField(null=True, blank=True, help_text="Placeholder for now")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.full_name
+
+class SubscriptionPlan(models.Model):
+    name = models.CharField(max_length=50)
+    price = models.PositiveIntegerField(help_text="Price in INR")
+    duration_days = models.PositiveIntegerField(default=30)
+    job_post_limit = models.PositiveIntegerField()
+    resume_view_limit = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class EmployerSubscription(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    jobs_posted_count = models.PositiveIntegerField(default=0)
+    resumes_viewed_count = models.PositiveIntegerField(default=0)
+
+    def is_active(self):
+        from django.utils import timezone
+        return timezone.now() < self.expires_at
+
+    def can_post_job(self):
+        return self.is_active() and self.jobs_posted_count < self.plan.job_post_limit
+
+    def can_view_resume(self):
+        return self.is_active() and self.resumes_viewed_count < self.plan.resume_view_limit
+
+    def __str__(self):
+        return f"{self.user.username} - {self.plan.name}"

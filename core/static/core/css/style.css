@@ -1,3 +1,42 @@
+/* ==========================================================================
+   DEPLOYNIX — STYLE.CSS
+   Table of Contents:
+   1. Base / Body
+   2. Navbar & Dropdown (public site)
+   3. Homepage — Hero & Search
+   4. Homepage — Job Categories
+   5. Homepage — Roadmap
+   6. Homepage — Membership Cards
+   7. Dashboard — Topbar & Subnav
+   8. Dashboard — Search Row & Promo
+   9. Dashboard — Stats Grid
+   10. Dashboard — Action Buttons
+   11. Dashboard — Panels (Upcoming Interviews / Recent Activity)
+   12. Shared Buttons
+   13. Job Detail Page
+   14. Jobs List Page
+   15. Apply Job / Application Success
+   16. Subnav Dropdown (dashboard pages)
+   17. Candidates — Search Bar (legacy single-field)
+   18. Candidates — Card & Status Badges
+   19. Candidates — Multi-Field Search Grid
+   20. Inquiries Page
+   21. Add Candidate / Add Interview — Form Grid
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. BASE / BODY
+   ========================================================================== */
+body {
+    font-family: 'Playfair Display', serif;
+    padding-top: 88px;
+}
+
+
+/* ==========================================================================
+   2. NAVBAR & DROPDOWN (public site)
+   ========================================================================== */
 nav {
     position: fixed;
     top: 0;
@@ -5,6 +44,7 @@ nav {
     right: 0;
     z-index: 100;
 }
+
 .nav-dropdown {
     position: relative;
 }
@@ -50,23 +90,24 @@ nav {
 }
 
 
-body {
-    font-family: 'Playfair Display', serif;
-    padding-top: 88px;
-}
-
+/* ==========================================================================
+   3. HOMEPAGE — HERO & SEARCH
+   ========================================================================== */
 .hero-bg {
     background-image: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), url('../assets/bgimg1.jpeg');
     background-size: cover;
     background-position: center;
 }
-.marquee-track {
-    animation: scroll-left 15s linear infinite;
-}
+
 .marquee-wrapper {
     background-color: #e7eaf4;
     padding: 1.5rem 0;
 }
+
+.marquee-track {
+    animation: scroll-left 15s linear infinite;
+}
+
 .marquee-card {
     background: white;
     border-radius: 0.5rem;
@@ -83,14 +124,12 @@ body {
     transform: scale(1.08);
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
 }
+
 @keyframes scroll-left {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(-50%);
-    }
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
 }
+
 .search-bar-card {
     max-width: 64rem;
     margin: -2rem auto 0 auto;
@@ -112,8 +151,8 @@ body {
     border-radius: 0.375rem;
     padding: 0.75rem 1rem;
     font-size: 0.875rem;
-
 }
+
 .search-button {
     background-color: #dc2626;
     color: white;
@@ -122,9 +161,15 @@ body {
     font-weight: 600;
     font-size: 0.875rem;
 }
+
 .search-button:hover {
     background-color: #1c1717;
 }
+
+
+/* ==========================================================================
+   4. HOMEPAGE — JOB CATEGORIES
+   ========================================================================== */
 .job-category-heading {
     font-size: 2.25rem;
     font-weight: bold;
@@ -133,6 +178,7 @@ body {
     margin-left: auto;
     margin-right: auto;
 }
+
 .job-category-section {
     max-width: 100%;
     margin: 6rem 0 0 0;
@@ -146,6 +192,7 @@ body {
         transparent 12px
     );
 }
+
 .job-category-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -153,6 +200,7 @@ body {
     max-width: 72rem;
     margin: 0 auto;
 }
+
 .job-category-card {
     border: 2px solid #9ca3af;
     border-radius: 0.5rem;
@@ -163,6 +211,7 @@ body {
     background: white;
     transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .job-category-card:hover {
     transform: scale(1.05);
     border-color: #dc2626;
@@ -180,6 +229,7 @@ body {
     font-size: 1.1rem;
     color: #1f2937;
 }
+
 .icon-purple { background-color: #f3e8ff; }
 .icon-green  { background-color: #dcfce7; }
 .icon-orange { background-color: #ffedd5; }
@@ -195,6 +245,7 @@ body {
     margin-left: auto;
     margin-right: auto;
 }
+
 .job-category-more:hover {
     color: #dc2626;
 }
@@ -206,6 +257,11 @@ body {
 #more-categories {
     margin-top: 1rem;
 }
+
+
+/* ==========================================================================
+   5. HOMEPAGE — ROADMAP
+   ========================================================================== */
 .roadmap-section {
     max-width: 64rem;
     margin: 6rem auto 0 auto;
@@ -281,10 +337,22 @@ body {
     font-weight: bold;
     color: #b91c1c;
 }
+
+
+/* ==========================================================================
+   6. HOMEPAGE — MEMBERSHIP CARDS
+   ========================================================================== */
 .membership-section {
     max-width: 72rem;
     margin: 6rem auto 0 auto;
     padding: 0 1rem;
+}
+
+.membership-heading {
+    font-size: 2.25rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 3rem;
 }
 
 .membership-grid {
@@ -329,12 +397,7 @@ body {
     font-size: 1.1rem;
     margin-bottom: 0.25rem;
 }
-.membership-heading {
-    font-size: 2.25rem;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 3rem;
-}
+
 .membership-text {
     color: #6b7280;
     font-size: 0.9rem;
@@ -352,6 +415,10 @@ body {
     text-decoration: underline;
 }
 
+
+/* ==========================================================================
+   7. DASHBOARD — TOPBAR & SUBNAV
+   ========================================================================== */
 .dashboard-topbar {
     background-color: #111;
     color: white;
@@ -386,6 +453,10 @@ body {
     padding: 0 1.5rem;
 }
 
+
+/* ==========================================================================
+   8. DASHBOARD — SEARCH ROW & PROMO
+   ========================================================================== */
 .dashboard-search-row {
     background: white;
     border: 2px solid #9ca3af;
@@ -400,12 +471,23 @@ body {
 }
 
 .dashboard-search-row input {
-    border: 1px solid #d1d5db;
+    border: 2px solid #6b7280 !important;
     border-radius: 0.375rem;
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
     width: 220px;
-   
+    color: #111827 !important;
+    background-color: #ffffff !important;
+}
+
+.dashboard-search-row input::placeholder {
+    color: #374151 !important;
+    opacity: 1 !important;
+}
+
+.dashboard-search-row input:focus {
+    outline: none;
+    border-color: #dc2626 !important;
 }
 
 .dashboard-promo {
@@ -427,6 +509,10 @@ body {
     font-weight: 600;
 }
 
+
+/* ==========================================================================
+   9. DASHBOARD — STATS GRID
+   ========================================================================== */
 .dashboard-stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -480,6 +566,10 @@ body {
     border-radius: 0.25rem;
 }
 
+
+/* ==========================================================================
+   10. DASHBOARD — ACTION BUTTONS
+   ========================================================================== */
 .dashboard-actions-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -507,6 +597,10 @@ body {
     color: #dc2626;
 }
 
+
+/* ==========================================================================
+   11. DASHBOARD — PANELS (Upcoming Interviews / Recent Activity)
+   ========================================================================== */
 .dashboard-panels-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -572,6 +666,11 @@ body {
     font-size: 0.8rem;
     white-space: nowrap;
 }
+
+
+/* ==========================================================================
+   12. SHARED BUTTONS
+   ========================================================================== */
 .dashboard-btn {
     display: inline-block;
     background-color: #dc2626;
@@ -587,6 +686,10 @@ body {
     background-color: #b91c1c;
 }
 
+
+/* ==========================================================================
+   13. JOB DETAIL PAGE
+   ========================================================================== */
 .job-detail-row {
     display: flex;
     justify-content: space-between;
@@ -603,6 +706,11 @@ body {
     color: #111827;
     text-align: right;
 }
+
+
+/* ==========================================================================
+   14. JOBS LIST PAGE
+   ========================================================================== */
 .job-list-card {
     background: white;
     border: 2px solid #9ca3af;
@@ -648,6 +756,11 @@ body {
     color: #6b7280;
     padding: 3rem 0;
 }
+
+
+/* ==========================================================================
+   15. APPLY JOB / APPLICATION SUCCESS
+   ========================================================================== */
 .apply-page-wrap {
     max-width: 700px;
     margin: 3rem auto;
@@ -684,6 +797,11 @@ body {
     font-size: 3rem;
     margin-bottom: 1rem;
 }
+
+
+/* ==========================================================================
+   16. SUBNAV DROPDOWN (dashboard pages — Candidates ▾ menu)
+   ========================================================================== */
 .subnav-dropdown {
     position: relative;
     display: inline-block;
@@ -724,6 +842,10 @@ body {
     color: #dc2626 !important;
 }
 
+
+/* ==========================================================================
+   17. CANDIDATES — SEARCH BAR (legacy single-field, kept for compatibility)
+   ========================================================================== */
 .candidate-search-bar {
     display: flex;
     gap: 1rem;
@@ -738,6 +860,10 @@ body {
     font-size: 0.9rem;
 }
 
+
+/* ==========================================================================
+   18. CANDIDATES — CARD & STATUS BADGES
+   ========================================================================== */
 .candidate-card {
     background: white;
     border: 2px solid #9ca3af;
@@ -754,10 +880,14 @@ body {
     border-color: #dc2626;
 }
 
+/* NOTE: .candidate-name was previously defined twice (here and again under
+   Inquiries). Merged into one rule below — this is also used inside the
+   Inquiries table for the candidate's name cell. */
 .candidate-name {
     font-weight: bold;
     font-size: 1.05rem;
     margin-bottom: 0.2rem;
+    color: #111827;
 }
 
 .candidate-meta {
@@ -778,19 +908,6 @@ body {
     margin-top: 0.3rem;
 }
 
-.candidate-status-badge {
-    padding: 0.2rem 0.7rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.status-applied { background-color: #fef3c7; color: #d97706; }
-.status-shortlisted { background-color: #dbeafe; color: #2563eb; }
-.status-rejected { background-color: #fee2e2; color: #dc2626; }
-.status-hired { background-color: #dcfce7; color: #16a34a; }
-
 .candidate-resume-link {
     color: #dc2626;
     font-size: 0.85rem;
@@ -804,31 +921,18 @@ body {
     text-decoration: underline;
 }
 
-.candidate-search-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr) auto;
-    gap: 0.8rem;
-    margin-bottom: 1.5rem;
-    align-items: center;
-}
-
-.candidate-search-grid input {
-    border: 2px solid #9ca3af;
-    border-radius: 0.375rem;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.85rem;
-    width: 100%;
-    box-sizing: border-box;
-    outline: none;
-}
-.candidate-search-grid input:focus {
-    border-color: #dc2626;
-}
-
-.candidate-search-grid button {
+.candidate-status-badge {
+    padding: 0.2rem 0.7rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
     white-space: nowrap;
-    padding: 0.6rem 1.2rem;
 }
+
+.status-applied { background-color: #fef3c7; color: #d97706; }
+.status-shortlisted { background-color: #dbeafe; color: #2563eb; }
+.status-rejected { background-color: #fee2e2; color: #dc2626; }
+.status-hired { background-color: #dcfce7; color: #16a34a; }
 
 .status-select {
     border: 1px solid #d1d5db;
@@ -839,7 +943,47 @@ body {
 }
 
 
-/* Inquiries Page Theme */
+/* ==========================================================================
+   19. CANDIDATES — MULTI-FIELD SEARCH GRID (Search Resume page)
+   ========================================================================== */
+.candidate-search-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr) auto;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+}
+
+.candidate-search-grid input {
+    border: 2px solid #6b7280 !important;
+    border-radius: 0.375rem;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    color: #111827 !important;
+    background-color: #ffffff !important;
+}
+
+.candidate-search-grid input::placeholder {
+    color: #374151 !important;
+    opacity: 1 !important;
+}
+
+.candidate-search-grid input:focus {
+    border-color: #dc2626 !important;
+}
+
+.candidate-search-grid button {
+    white-space: nowrap;
+    padding: 0.6rem 1.2rem;
+}
+
+
+/* ==========================================================================
+   20. INQUIRIES PAGE
+   ========================================================================== */
 .inquiries-container {
     padding: 20px;
     background: #f5f5f5;
@@ -920,11 +1064,6 @@ body {
     background: #f9fafb;
 }
 
-.candidate-name {
-    font-weight: bold;
-    color: #111827;
-}
-
 .candidate-email {
     color: #6b7280;
     font-size: 13px;
@@ -938,25 +1077,10 @@ body {
     display: inline-block;
 }
 
-.status.unread {
-    background: #ffe5e5;
-    color: #e31b23;
-}
-
-.status.read {
-    background: #e5f0ff;
-    color: #2563eb;
-}
-
-.status.replied {
-    background: #e8f5e9;
-    color: #16a34a;
-}
-
-.status.closed {
-    background: #f3f4f6;
-    color: #6b7280;
-}
+.status.unread  { background: #ffe5e5; color: #e31b23; }
+.status.read    { background: #e5f0ff; color: #2563eb; }
+.status.replied { background: #e8f5e9; color: #16a34a; }
+.status.closed  { background: #f3f4f6; color: #6b7280; }
 
 .action-buttons {
     display: flex;
@@ -999,6 +1123,10 @@ body {
     font-size: 15px;
 }
 
+
+/* ==========================================================================
+   21. ADD CANDIDATE / ADD INTERVIEW — FORM GRID
+   ========================================================================== */
 .add-candidate-form {
     max-width: 900px;
     background: white;

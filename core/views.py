@@ -4,6 +4,12 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from .models import JobSeekerProfile
+from .forms import JobSeekerProfileForm
+from django.urls import reverse
+from .models import SubscriptionPlan, EmployerSubscription
+from django.utils import timezone
+from datetime import timedelta
 
 from .forms import (
     SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
@@ -37,9 +43,27 @@ def service_detail(request, slug):
     service = SERVICES_DATA.get(slug)
     return render(request, 'core/service_detail.html', {'service': service, 'slug': slug})
 
-
 def home(request):
-    return render(request, 'core/home.html')
+    query = request.GET.get('q', '')
+    location = request.GET.get('location', '')
+
+    jobs = Job.objects.all().order_by('-posted_at')
+
+    if query:
+        jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    jobs = jobs[:12]  # cap results shown on homepage
+
+    return render(request, 'core/home.html', {
+        'jobs': jobs,
+        'query': query,
+        'location': location,
+        'searched': bool(query or location),
+    })
+
+
 
 
 def signup(request):
@@ -51,6 +75,16 @@ def signup(request):
             password = form.cleaned_data['password']
             user = User.objects.create_user(username=username, email=email, password=password)
             user.save()
+
+            # Auto-assign Free plan
+            free_plan = SubscriptionPlan.objects.filter(name='Free').first()
+            if free_plan:
+                EmployerSubscription.objects.create(
+                    user=user,
+                    plan=free_plan,
+                    expires_at=timezone.now() + timedelta(days=free_plan.duration_days),
+                )
+
             return redirect('home')
     else:
         form = SignUpForm()
@@ -136,10 +170,10 @@ def post_job(request):
     return render(request, 'core/post_job.html', {'form': form})
 
 
-@login_required(login_url='employer_login')
 def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
     return render(request, 'core/job_detail.html', {'job': job})
+
 
 
 @login_required(login_url='employer_login')
@@ -147,19 +181,24 @@ def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
-
+@login_required(login_url='job_seeker_login')
 def apply_job(request, job_id):
     job = Job.objects.get(id=job_id)
+
+    if not hasattr(request.user, 'jobseeker_profile'):
+        messages.info(request, 'Please complete your profile before applying.')
+        return redirect(f"{reverse('create_profile')}?next={reverse('apply_job', args=[job_id])}")
+
+    profile = request.user.jobseeker_profile
+
     if request.method == 'POST':
-        form = JobApplicationForm(request.POST, request.FILES)
-        if form.is_valid():
-            application = form.save(commit=False)
-            application.job = job
-            application.save()
-            return redirect('application_success', job_id=job.id)
-    else:
-        form = JobApplicationForm()
-    return render(request, 'core/apply_job.html', {'form': form, 'job': job})
+        JobApplication.objects.create(
+            job=job,
+            job_seeker_profile=profile,
+        )
+        return redirect('application_success', job_id=job.id)
+
+    return render(request, 'core/apply_job.html', {'job': job, 'profile': profile})
 
 
 def application_success(request, job_id):
@@ -178,7 +217,6 @@ def manage_candidates(request):
     applications = JobApplication.objects.filter(job__posted_by=request.user).order_by('-applied_at')
     return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'Manage Candidates'})
 
-
 @login_required(login_url='employer_login')
 def search_resume(request):
     name = request.GET.get('name', '')
@@ -190,15 +228,25 @@ def search_resume(request):
     applications = JobApplication.objects.filter(job__posted_by=request.user)
 
     if name:
-        applications = applications.filter(full_name__icontains=name)
+        applications = applications.filter(
+            Q(full_name__icontains=name) | Q(job_seeker_profile__full_name__icontains=name)
+        )
     if skills:
-        applications = applications.filter(skills__icontains=skills)
+        applications = applications.filter(
+            Q(skills__icontains=skills) | Q(job_seeker_profile__skills__icontains=skills)
+        )
     if experience:
-        applications = applications.filter(experience__icontains=experience)
+        applications = applications.filter(
+            Q(experience__icontains=experience) | Q(job_seeker_profile__experience__icontains=experience)
+        )
     if education:
-        applications = applications.filter(education__icontains=education)
+        applications = applications.filter(
+            Q(education__icontains=education) | Q(job_seeker_profile__education__icontains=education)
+        )
     if location:
-        applications = applications.filter(job__location__icontains=location)
+        applications = applications.filter(
+            Q(job__location__icontains=location) | Q(job_seeker_profile__location__icontains=location)
+        )
 
     applications = applications.order_by('-applied_at')
 
@@ -267,3 +315,43 @@ def add_interview(request):
     else:
         form = InterviewForm(user=request.user)
     return render(request, 'core/add_interview.html', {'form': form})
+
+
+
+@login_required(login_url='job_seeker_login')
+def create_profile(request):
+    # If they already have a profile, just send them to edit instead
+    if hasattr(request.user, 'jobseeker_profile'):
+        return redirect('edit_profile')
+
+    if request.method == 'POST':
+        form = JobSeekerProfileForm(request.POST, request.FILES)
+        if form.is_valid():
+            profile = form.save(commit=False)
+            profile.user = request.user
+            profile.save()
+            messages.success(request, 'Profile created successfully.')
+            next_url = request.GET.get('next', 'home')
+            return redirect(next_url)
+    else:
+        form = JobSeekerProfileForm()
+
+    return render(request, 'core/create_profile.html', {'form': form})
+
+
+@login_required(login_url='job_seeker_login')
+def edit_profile(request):
+    profile, created = JobSeekerProfile.objects.get_or_create(
+        user=request.user, defaults={'full_name': request.user.username, 'phone': ''}
+    )
+
+    if request.method == 'POST':
+        form = JobSeekerProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully.')
+            return redirect('edit_profile')
+    else:
+        form = JobSeekerProfileForm(instance=profile)
+
+    return render(request, 'core/edit_profile.html', {'form': form})
