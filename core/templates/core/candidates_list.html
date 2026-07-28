@@ -8,6 +8,19 @@
 <div class="dashboard-wrap">
     <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">{{ page_title }}</h3>
 
+    {% if subscription %}
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; font-size:0.875rem; color:#1e40af;">
+        {{ subscription.plan.name }} plan — {{ subscription.resumes_viewed_count }}/{{ subscription.plan.resume_view_limit }} resume unlocks used.
+        {% if not subscription.can_view_resume %}
+            <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline;">Upgrade to unlock more</a>
+        {% endif %}
+    </div>
+    {% else %}
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; font-size:0.875rem; color:#991b1b;">
+        No active subscription. <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline;">Choose a plan</a> to unlock candidate resumes.
+    </div>
+    {% endif %}
+
     {% if show_search %}
     <form method="get" class="candidate-search-grid">
         <input type="text" name="name" value="{{ search_values.name }}" placeholder="Name">
@@ -24,13 +37,27 @@
     <div class="candidate-card">
         <div>
             <div class="candidate-name">{{ app.display_full_name }}</div>
-            <div class="candidate-meta">{{ app.display_email }} • {{ app.display_phone }}</div>
-            <div class="candidate-meta">{{ app.display_education }} • {{ app.display_experience }}</div>
-            <div class="candidate-meta">Skills: {{ app.display_skills }}</div>
-            <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
-            <br>
-            {% if app.display_resume %}
-            <a href="{{ app.display_resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
+
+            {% if app.id in unlocked_ids %}
+                <div class="candidate-meta">{{ app.display_email }} • {{ app.display_phone }}</div>
+                <div class="candidate-meta">{{ app.display_education }} • {{ app.display_experience }}</div>
+                <div class="candidate-meta">Skills: {{ app.display_skills }}</div>
+                <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
+                <br>
+                {% if app.display_resume %}
+                <a href="{{ app.display_resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
+                {% endif %}
+            {% else %}
+                <div class="candidate-meta" style="filter: blur(4px); user-select: none;">contact@hidden.com • +91 XXXXXXXXXX</div>
+                <div class="candidate-meta" style="filter: blur(4px); user-select: none;">{{ app.display_education }} • {{ app.display_experience }}</div>
+                <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
+                <br>
+                <form method="post" action="{% url 'unlock_resume' app.id %}" style="margin-top:0.5rem;">
+                    {% csrf_token %}
+                    <button type="submit" class="dashboard-btn" style="background:#2563eb;">
+                        🔒 Unlock Contact & Resume
+                    </button>
+                </form>
             {% endif %}
         </div>
         <div style="text-align: right;">
@@ -38,11 +65,11 @@
             <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top: 0.5rem;">
                 {% csrf_token %}
                 <select name="status" onchange="this.form.submit()" class="status-select">
-                    <option value="applied" {% if app.status=='applied' %}selected{% endif %}>New Applicant</option>
-                    <option value="shortlisted" {% if app.status=='shortlisted' %}selected{% endif %}>Shortlisted
+                    <option value="applied" {% if app.status == 'applied' %}selected{% endif %}>New Applicant</option>
+                    <option value="shortlisted" {% if app.status == 'shortlisted' %}selected{% endif %}>Shortlisted
                     </option>
-                    <option value="rejected" {% if app.status=='rejected' %}selected{% endif %}>Rejected</option>
-                    <option value="hired" {% if app.status=='hired' %}selected{% endif %}>Hired</option>
+                    <option value="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="hired" {% if app.status == 'hired' %}selected{% endif %}>Hired</option>
                 </select>
             </form>
         </div>

@@ -20,7 +20,6 @@
     </a>
     <div style="display: flex; align-items: center; gap: 1rem;">
         <span class="job-list-openings">{{ job.number_of_openings }} Opening{{ job.number_of_openings|pluralize }}</span>
-        <a href="{% url 'apply_job' job.id %}" class="dashboard-btn" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Apply</a>
     </div>
 </div>
     {% endfor %}

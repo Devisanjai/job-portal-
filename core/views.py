@@ -4,18 +4,30 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import JobSeekerProfile
-from .forms import JobSeekerProfileForm
 from django.urls import reverse
-from .models import SubscriptionPlan, EmployerSubscription
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.auth import logout
 
+
+
+import razorpay
+import json
+from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from .models import (
+    Job, JobApplication, Inquiry, Interview,
+    JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock,
+)
 from .forms import (
     SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
-    JobApplicationForm, EmployerAddCandidateForm, InterviewForm
+    JobApplicationForm, EmployerAddCandidateForm, InterviewForm, JobSeekerProfileForm,
 )
-from .models import Job, JobApplication, Inquiry, Interview
+
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 SERVICES_DATA = {
     'premium-membership': {
@@ -43,6 +55,7 @@ def service_detail(request, slug):
     service = SERVICES_DATA.get(slug)
     return render(request, 'core/service_detail.html', {'service': service, 'slug': slug})
 
+
 def home(request):
     query = request.GET.get('q', '')
     location = request.GET.get('location', '')
@@ -54,7 +67,7 @@ def home(request):
     if location:
         jobs = jobs.filter(location__icontains=location)
 
-    jobs = jobs[:12]  # cap results shown on homepage
+    jobs = jobs[:12]
 
     return render(request, 'core/home.html', {
         'jobs': jobs,
@@ -62,8 +75,6 @@ def home(request):
         'location': location,
         'searched': bool(query or location),
     })
-
-
 
 
 def signup(request):
@@ -76,7 +87,6 @@ def signup(request):
             user = User.objects.create_user(username=username, email=email, password=password)
             user.save()
 
-            # Auto-assign Free plan
             free_plan = SubscriptionPlan.objects.filter(name='Free').first()
             if free_plan:
                 EmployerSubscription.objects.create(
@@ -131,6 +141,7 @@ def employer_dashboard(request):
         'inquiries_unread': 93,
         'upcoming_interviews': upcoming_interviews,
         'recent_activity': applications.order_by('-applied_at')[:5],
+        'subscription': getattr(request.user, 'subscription', None),
     }
     return render(request, 'core/employer_dashboard.html', context)
 
@@ -140,6 +151,7 @@ def job_seeker_options(request):
 
 
 def job_seeker_login(request):
+    next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
         form = JobSeekerLoginForm(request.POST)
         if form.is_valid():
@@ -148,12 +160,12 @@ def job_seeker_login(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect('home')
+                return redirect(next_url)
             else:
                 messages.error(request, 'Invalid username or password.')
     else:
         form = JobSeekerLoginForm()
-    return render(request, 'core/job_seeker_login.html', {'form': form})
+    return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
 
 
 @login_required(login_url='employer_login')
@@ -172,14 +184,20 @@ def post_job(request):
 
 def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
-    return render(request, 'core/job_detail.html', {'job': job})
-
+    is_owner = request.user.is_authenticated and request.user == job.posted_by
+    base_template = 'core/dashboard_base.html' if is_owner else 'core/base.html'
+    return render(request, 'core/job_detail.html', {
+        'job': job,
+        'is_owner': is_owner,
+        'base_template': base_template,
+    })
 
 
 @login_required(login_url='employer_login')
 def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
+
 
 @login_required(login_url='job_seeker_login')
 def apply_job(request, job_id):
@@ -206,16 +224,46 @@ def application_success(request, job_id):
     return render(request, 'core/application_success.html', {'job': job})
 
 
+# ---- Candidate list helper (used by new_applicants, manage_candidates, shortlisted, search_resume) ----
+
+def _candidate_list_context(request, applications, page_title, show_search=False, search_values=None):
+    subscription = getattr(request.user, 'subscription', None)
+    unlocked_ids = set(
+        ResumeUnlock.objects.filter(employer=request.user, application__in=applications)
+        .values_list('application_id', flat=True)
+    )
+    context = {
+        'applications': applications,
+        'page_title': page_title,
+        'unlocked_ids': unlocked_ids,
+        'subscription': subscription,
+        'show_search': show_search,
+    }
+    if search_values is not None:
+        context['search_values'] = search_values
+    return context
+
+
 @login_required(login_url='employer_login')
 def new_applicants(request):
     applications = JobApplication.objects.filter(job__posted_by=request.user, status='applied').order_by('-applied_at')
-    return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'New Applicants'})
+    context = _candidate_list_context(request, applications, 'New Applicants')
+    return render(request, 'core/candidates_list.html', context)
 
 
 @login_required(login_url='employer_login')
 def manage_candidates(request):
     applications = JobApplication.objects.filter(job__posted_by=request.user).order_by('-applied_at')
-    return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'Manage Candidates'})
+    context = _candidate_list_context(request, applications, 'Manage Candidates')
+    return render(request, 'core/candidates_list.html', context)
+
+
+@login_required(login_url='employer_login')
+def shortlisted(request):
+    applications = JobApplication.objects.filter(job__posted_by=request.user, status='shortlisted').order_by('-applied_at')
+    context = _candidate_list_context(request, applications, 'Shortlisted Candidates')
+    return render(request, 'core/candidates_list.html', context)
+
 
 @login_required(login_url='employer_login')
 def search_resume(request):
@@ -250,24 +298,40 @@ def search_resume(request):
 
     applications = applications.order_by('-applied_at')
 
-    return render(request, 'core/candidates_list.html', {
-        'applications': applications,
-        'page_title': 'Search Resume',
-        'show_search': True,
-        'search_values': {
-            'name': name,
-            'skills': skills,
-            'experience': experience,
-            'education': education,
-            'location': location,
+    context = _candidate_list_context(
+        request, applications, 'Search Resume',
+        show_search=True,
+        search_values={
+            'name': name, 'skills': skills, 'experience': experience,
+            'education': education, 'location': location,
         },
-    })
+    )
+    return render(request, 'core/candidates_list.html', context)
 
 
 @login_required(login_url='employer_login')
-def shortlisted(request):
-    applications = JobApplication.objects.filter(job__posted_by=request.user, status='shortlisted').order_by('-applied_at')
-    return render(request, 'core/candidates_list.html', {'applications': applications, 'page_title': 'Shortlisted Candidates'})
+@require_POST
+def unlock_resume(request, application_id):
+    application = JobApplication.objects.get(id=application_id)
+
+    if application.job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('manage_candidates')
+
+    already_unlocked = ResumeUnlock.objects.filter(employer=request.user, application=application).exists()
+    if already_unlocked:
+        return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
+
+    subscription = getattr(request.user, 'subscription', None)
+    if not subscription or not subscription.can_view_resume():
+        messages.warning(request, "You've hit your resume view limit. Upgrade your plan to view more candidates.")
+        return redirect('subscription_plans')
+
+    ResumeUnlock.objects.create(employer=request.user, application=application)
+    subscription.resumes_viewed_count += 1
+    subscription.save()
+
+    return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
 
 @login_required(login_url='employer_login')
@@ -317,10 +381,8 @@ def add_interview(request):
     return render(request, 'core/add_interview.html', {'form': form})
 
 
-
 @login_required(login_url='job_seeker_login')
 def create_profile(request):
-    # If they already have a profile, just send them to edit instead
     if hasattr(request.user, 'jobseeker_profile'):
         return redirect('edit_profile')
 
@@ -355,3 +417,87 @@ def edit_profile(request):
         form = JobSeekerProfileForm(instance=profile)
 
     return render(request, 'core/edit_profile.html', {'form': form})
+
+
+# ---- Subscription plans / Razorpay payment ----
+
+@login_required(login_url='employer_login')
+def subscription_plans(request):
+    plans = SubscriptionPlan.objects.all().order_by('price')
+    current_sub = getattr(request.user, 'subscription', None)
+    return render(request, 'core/subscription_plans.html', {
+        'plans': plans,
+        'current_sub': current_sub,
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+    })
+
+
+@login_required(login_url='employer_login')
+@require_POST
+def create_razorpay_order(request, plan_id):
+    plan = SubscriptionPlan.objects.get(id=plan_id)
+
+    if plan.price == 0:
+        EmployerSubscription.objects.update_or_create(
+            user=request.user,
+            defaults={
+                'plan': plan,
+                'expires_at': timezone.now() + timedelta(days=plan.duration_days),
+                'jobs_posted_count': 0,
+                'resumes_viewed_count': 0,
+            }
+        )
+        return JsonResponse({'free': True, 'redirect': reverse('employer_dashboard')})
+
+    amount_paise = plan.price * 100
+    order = razorpay_client.order.create({
+        'amount': amount_paise,
+        'currency': 'INR',
+        'payment_capture': 1,
+        'notes': {'plan_id': plan.id, 'user_id': request.user.id},
+    })
+
+    return JsonResponse({
+        'free': False,
+        'order_id': order['id'],
+        'amount': amount_paise,
+        'key_id': settings.RAZORPAY_KEY_ID,
+        'plan_name': plan.name,
+        'user_email': request.user.email,
+    })
+
+
+@csrf_exempt
+@login_required(login_url='employer_login')
+@require_POST
+def verify_payment(request):
+    data = json.loads(request.body)
+    plan_id = data.get('plan_id')
+
+    params_dict = {
+        'razorpay_order_id': data.get('razorpay_order_id'),
+        'razorpay_payment_id': data.get('razorpay_payment_id'),
+        'razorpay_signature': data.get('razorpay_signature'),
+    }
+
+    try:
+        razorpay_client.utility.verify_payment_signature(params_dict)
+    except razorpay.errors.SignatureVerificationError:
+        return JsonResponse({'success': False, 'error': 'Signature verification failed'}, status=400)
+
+    plan = SubscriptionPlan.objects.get(id=plan_id)
+    EmployerSubscription.objects.update_or_create(
+        user=request.user,
+        defaults={
+            'plan': plan,
+            'expires_at': timezone.now() + timedelta(days=plan.duration_days),
+            'jobs_posted_count': 0,
+            'resumes_viewed_count': 0,
+        }
+    )
+
+    return JsonResponse({'success': True, 'redirect': reverse('employer_dashboard')})
+
+def logout_view(request):
+    logout(request)
+    return redirect('home')

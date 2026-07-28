@@ -1,4 +1,4 @@
-{% extends 'core/dashboard_base.html' %}
+{% extends base_template %}
 {% load static %}
 
 {% block title %}{{ job.job_title }} - Deploynix{% endblock %}
@@ -6,7 +6,7 @@
 {% block content %}
 
 <div class="dashboard-wrap">
-    <div class="dashboard-panel" style="max-width: 700px; margin: 0 auto;">
+    <div class="dashboard-panel" style="max-width: 700px; margin: 2rem auto;">
         <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ job.job_title }}</h3>
         <p style="color: #6b7280; margin-bottom: 1.5rem;">Posted on {{ job.posted_at|date:"d M Y, h:i A" }}</p>
 
@@ -45,8 +45,12 @@
         {% endif %}
 
         <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
-            <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back to Dashboard</a>
-            <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
+            {% if is_owner %}
+                <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back to Dashboard</a>
+            {% else %}
+                <a href="{% url 'home' %}" class="dashboard-btn">← Back to Jobs</a>
+                <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -1,0 +1,98 @@
+{% extends 'core/dashboard_base.html' %}
+{% block content %}
+<div class="max-w-5xl mx-auto py-10 px-4">
+    <h1 class="text-2xl font-bold mb-2">Subscription Plans</h1>
+    <p class="text-gray-500 mb-8">Unlock more job posts and candidate resume views.</p>
+
+    {% if current_sub %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+        <p class="text-sm text-blue-800">
+            Current plan: <strong>{{ current_sub.plan.name }}</strong> —
+            expires {{ current_sub.expires_at|date:"d M Y" }}
+            · {{ current_sub.jobs_posted_count }}/{{ current_sub.plan.job_post_limit }} job posts used
+            · {{ current_sub.resumes_viewed_count }}/{{ current_sub.plan.resume_view_limit }} resume views used
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for plan in plans %}
+        <div class="border rounded-xl p-6 shadow-sm flex flex-col {% if current_sub.plan_id == plan.id %}border-blue-500 ring-2 ring-blue-200{% endif %}">
+            <h2 class="text-xl font-semibold">{{ plan.name }}</h2>
+            <p class="text-3xl font-bold my-4">
+                {% if plan.price == 0 %}Free{% else %}₹{{ plan.price }}<span class="text-sm text-gray-400">/{{ plan.duration_days }}d</span>{% endif %}
+            </p>
+            <ul class="text-sm text-gray-600 space-y-2 flex-1 mb-6">
+                <li>✓ {{ plan.job_post_limit }} job posts</li>
+                <li>✓ {{ plan.resume_view_limit }} resume views</li>
+                <li>✓ Valid {{ plan.duration_days }} days</li>
+            </ul>
+            <button
+                onclick="startCheckout({{ plan.id }}, '{{ plan.name }}', {{ plan.price }})"
+                class="w-full py-2 rounded-lg font-medium
+                    {% if current_sub.plan_id == plan.id %}bg-gray-200 text-gray-500 cursor-not-allowed{% else %}bg-blue-600 text-white hover:bg-blue-700{% endif %}"
+                {% if current_sub.plan_id == plan.id %}disabled{% endif %}>
+                {% if current_sub.plan_id == plan.id %}Current Plan{% elif plan.price == 0 %}Activate Free{% else %}Upgrade{% endif %}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+async function startCheckout(planId, planName, price) {
+    const res = await fetch(`/plans/${planId}/order/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')},
+    });
+    const data = await res.json();
+
+    if (data.free) {
+        window.location.href = data.redirect;
+        return;
+    }
+
+    const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: 'INR',
+        name: 'Deploynix',
+        description: `${data.plan_name} Plan`,
+        order_id: data.order_id,
+        prefill: { email: data.user_email },
+        handler: async function (response) {
+            const verifyRes = await fetch('/plans/verify/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature,
+                    plan_id: planId,
+                }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+                window.location.href = verifyData.redirect;
+            } else {
+                alert('Payment verification failed. Please contact support.');
+            }
+        },
+        theme: { color: '#2563eb' },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+}
+</script>
+{% endblock %}

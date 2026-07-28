@@ -200,3 +200,14 @@ class EmployerSubscription(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.plan.name}"
+
+class ResumeUnlock(models.Model):
+    employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resume_unlocks')
+    application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='unlocked_by')
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('employer', 'application')
+
+    def __str__(self):
+        return f"{self.employer.username} unlocked {self.application_id}"

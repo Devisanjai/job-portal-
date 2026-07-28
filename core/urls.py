@@ -24,4 +24,9 @@ urlpatterns = [
     path('interview/add/', views.add_interview, name='add_interview'),
     path('profile/create/', views.create_profile, name='create_profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('plans/', views.subscription_plans, name='subscription_plans'),
+    path('plans/<int:plan_id>/order/', views.create_razorpay_order, name='create_razorpay_order'),
+    path('plans/verify/', views.verify_payment, name='verify_payment'),
+    path('candidates/<int:application_id>/unlock/', views.unlock_resume, name='unlock_resume'),
+    path('logout/', views.logout_view, name='logout'),
 ]
