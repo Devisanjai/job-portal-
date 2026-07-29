@@ -11,25 +11,45 @@
     <form method="post" class="bg-white border-2 border-gray-400 rounded-lg p-8 shadow-sm">
         {% csrf_token %}
 
+        <!-- Display Detailed Form Errors -->
         {% if form.errors %}
-        <div class="bg-red-50 text-red-600 text-sm p-3 rounded mb-4">
-            Please correct the errors below.
+        <div class="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded mb-4">
+            <p class="font-semibold mb-1">Please correct the following errors:</p>
+            <ul class="list-disc list-inside space-y-1">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
         </div>
         {% endif %}
 
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Username</label>
             {{ form.username }}
+            {% if form.username.errors %}
+                <p class="text-red-600 text-xs mt-1">{{ form.username.errors.0 }}</p>
+            {% endif %}
         </div>
 
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Email</label>
             {{ form.email }}
+            {% if form.email.errors %}
+                <p class="text-red-600 text-xs mt-1">{{ form.email.errors.0 }}</p>
+            {% endif %}
         </div>
 
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Password</label>
             {{ form.password }}
+            {% if form.password.errors %}
+                <p class="text-red-600 text-xs mt-1">{{ form.password.errors.0 }}</p>
+            {% endif %}
         </div>
 
         <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold">

@@ -1,15 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.contrib.messages import get_messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib.auth import logout
-
-
 
 import razorpay
 import json
@@ -57,8 +55,31 @@ def service_detail(request, slug):
 
 
 def home(request):
-    query = request.GET.get('q', '')
-    location = request.GET.get('location', '')
+    query = request.GET.get('q', '').strip()
+    location = request.GET.get('location', '').strip()
+
+    searched = bool(query or location)
+    if searched:
+        jobs = Job.objects.all().order_by('-posted_at')
+        if query:
+            jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
+        if location:
+            jobs = jobs.filter(location__icontains=location)
+        jobs = jobs[:12]
+    else:
+        jobs = Job.objects.none()
+
+    return render(request, 'core/home.html', {
+        'jobs': jobs,
+        'query': query,
+        'location': location,
+        'searched': searched,
+    })
+
+
+def job_vacancies(request):
+    query = request.GET.get('q', '').strip()
+    location = request.GET.get('location', '').strip()
 
     jobs = Job.objects.all().order_by('-posted_at')
 
@@ -67,14 +88,13 @@ def home(request):
     if location:
         jobs = jobs.filter(location__icontains=location)
 
-    jobs = jobs[:12]
-
-    return render(request, 'core/home.html', {
+    return render(request, 'core/job_vacancies.html', {
         'jobs': jobs,
         'query': query,
         'location': location,
         'searched': bool(query or location),
     })
+
 
 
 def signup(request):
@@ -121,7 +141,13 @@ def employer_login(request):
             else:
                 messages.error(request, 'Incorrect password.')
     else:
+        # Clear accumulated unread messages from session when loading the login page
+        storage = get_messages(request)
+        for _ in storage:
+            pass
+
         form = EmployerLoginForm()
+
     return render(request, 'core/employer_login.html', {'form': form})
 
 
@@ -164,12 +190,29 @@ def job_seeker_login(request):
             else:
                 messages.error(request, 'Invalid username or password.')
     else:
+        # Clear unread messages on login page render
+        storage = get_messages(request)
+        for _ in storage:
+            pass
+
         form = JobSeekerLoginForm()
+
     return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
 
 
 @login_required(login_url='employer_login')
 def post_job(request):
+    subscription = getattr(request.user, 'subscription', None)
+
+    if not subscription or not subscription.can_post_job():
+        # Clear previous messages before adding a fresh warning
+        storage = get_messages(request)
+        for _ in storage:
+            pass
+
+        messages.warning(request, "You've reached your job posting limit for this plan. Upgrade to post more jobs.")
+        return redirect('subscription_plans')
+
     if request.method == 'POST':
         form = JobPostForm(request.POST)
         if form.is_valid():
@@ -179,6 +222,7 @@ def post_job(request):
             return redirect('job_detail', job_id=job.id)
     else:
         form = JobPostForm()
+
     return render(request, 'core/post_job.html', {'form': form})
 
 
@@ -224,7 +268,7 @@ def application_success(request, job_id):
     return render(request, 'core/application_success.html', {'job': job})
 
 
-# ---- Candidate list helper (used by new_applicants, manage_candidates, shortlisted, search_resume) ----
+# ---- Candidate list helper ----
 
 def _candidate_list_context(request, applications, page_title, show_search=False, search_values=None):
     subscription = getattr(request.user, 'subscription', None)
@@ -425,9 +469,11 @@ def edit_profile(request):
 def subscription_plans(request):
     plans = SubscriptionPlan.objects.all().order_by('price')
     current_sub = getattr(request.user, 'subscription', None)
+    jobs_posted_live = Job.objects.filter(posted_by=request.user).count()
     return render(request, 'core/subscription_plans.html', {
         'plans': plans,
         'current_sub': current_sub,
+        'jobs_posted_live': jobs_posted_live,
         'razorpay_key_id': settings.RAZORPAY_KEY_ID,
     })
 
@@ -498,6 +544,21 @@ def verify_payment(request):
 
     return JsonResponse({'success': True, 'redirect': reverse('employer_dashboard')})
 
+
 def logout_view(request):
     logout(request)
     return redirect('home')
+
+
+@login_required(login_url='employer_login')
+@require_POST
+def delete_job(request, job_id):
+    job = Job.objects.get(id=job_id)
+
+    if job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('jobs_list')
+
+    job.delete()
+    messages.success(request, 'Job posting removed.')
+    return redirect('jobs_list')

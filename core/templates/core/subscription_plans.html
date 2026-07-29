@@ -9,7 +9,7 @@
         <p class="text-sm text-blue-800">
             Current plan: <strong>{{ current_sub.plan.name }}</strong> —
             expires {{ current_sub.expires_at|date:"d M Y" }}
-            · {{ current_sub.jobs_posted_count }}/{{ current_sub.plan.job_post_limit }} job posts used
+            · {{ jobs_posted_live }}/{{ current_sub.plan.job_post_limit }} job posts used
             · {{ current_sub.resumes_viewed_count }}/{{ current_sub.plan.resume_view_limit }} resume views used
         </p>
     </div>

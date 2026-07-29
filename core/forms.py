@@ -57,11 +57,15 @@ class JobSeekerProfileForm(forms.ModelForm):
 class JobPostForm(forms.ModelForm):
     class Meta:
         model = Job
-        fields = ['job_title', 'job_description', 'experience_required', 'job_type', 'location', 'number_of_openings', 'salary_range', 'skills_required']
+        fields = ['job_title', 'company_name', 'job_description', 'experience_required', 'job_type', 'location', 'number_of_openings', 'salary_range', 'skills_required']
         widgets = {
             'job_title': forms.TextInput(attrs={
                 'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
                 'placeholder': 'e.g. Frontend Developer'
+            }),
+            'company_name': forms.TextInput(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+                'placeholder': 'e.g. Deploynix Tech Pvt Ltd'
             }),
             'job_description': forms.Textarea(attrs={
                 'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',

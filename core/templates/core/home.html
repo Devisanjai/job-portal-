@@ -21,10 +21,9 @@
     <button type="submit" class="search-button">Search Jobs</button>
 </form>
 
+{% if searched %}
 <div class="max-w-6xl mx-auto mt-8 px-4">
-    <h2 class="text-2xl font-bold mb-4">
-        {% if searched %}Search Results{% else %}Latest Jobs{% endif %}
-    </h2>
+    <h2 class="text-2xl font-bold mb-4">Search Results</h2>
 
     {% if jobs %}
     {% for job in jobs %}
@@ -38,10 +37,11 @@
     {% endfor %}
     {% else %}
     <div class="jobs-empty">
-        <p>No jobs found{% if searched %} matching your search{% endif %}.</p>
+        <p>No jobs found matching your search.</p>
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 <div class="marquee-wrapper mt-2 overflow-hidden relative">
     <div class="marquee-track flex items-center gap-6 opacity-80 w-max">

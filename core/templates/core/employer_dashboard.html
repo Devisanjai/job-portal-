@@ -9,6 +9,22 @@
 
 <div class="dashboard-wrap">
 
+    {% if subscription %}
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 1.25rem; margin-bottom:1.5rem; font-size:0.875rem; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
+        <span>
+            <strong>{{ subscription.plan.name }} Plan</strong>
+            · {{ current_openings }}/{{ subscription.plan.job_post_limit }} job posts
+            · {{ subscription.resumes_viewed_count }}/{{ subscription.plan.resume_view_limit }} resume unlocks
+            · expires {{ subscription.expires_at|date:"d M Y" }}
+        </span>
+        <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline; white-space:nowrap; margin-left:1rem;">Manage Plan</a>
+    </div>
+    {% else %}
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1.25rem; margin-bottom:1.5rem; font-size:0.875rem; color:#991b1b;">
+        No active subscription. <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline;">Choose a plan</a> to start posting jobs and viewing candidates.
+    </div>
+    {% endif %}
+
     <div class="dashboard-search-row">
         <div style="display: flex; gap: 1rem; flex: 1; color: black;">
             <input type="text" placeholder="Enter Job Roles / Skills">

@@ -31,6 +31,7 @@ class Job(models.Model):
 
     posted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posted_jobs')
     job_title = models.CharField(max_length=200)
+    company_name = models.CharField(max_length=200, blank=True, default='')
     job_description = models.TextField()
     experience_required = models.CharField(max_length=20, choices=EXPERIENCE_CHOICES)
     job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES)
@@ -71,6 +72,7 @@ class JobApplication(models.Model):
 
     cover_note = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
+    is_bookmarked = models.BooleanField(default=False)
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -193,7 +195,8 @@ class EmployerSubscription(models.Model):
         return timezone.now() < self.expires_at
 
     def can_post_job(self):
-        return self.is_active() and self.jobs_posted_count < self.plan.job_post_limit
+        actual_count = Job.objects.filter(posted_by=self.user).count()
+        return self.is_active() and actual_count < self.plan.job_post_limit
 
     def can_view_resume(self):
         return self.is_active() and self.resumes_viewed_count < self.plan.resume_view_limit

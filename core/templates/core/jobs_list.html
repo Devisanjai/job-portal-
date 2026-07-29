@@ -20,6 +20,13 @@
     </a>
     <div style="display: flex; align-items: center; gap: 1rem;">
         <span class="job-list-openings">{{ job.number_of_openings }} Opening{{ job.number_of_openings|pluralize }}</span>
+        <form method="post" action="{% url 'delete_job' job.id %}"
+              onsubmit="return confirm('Remove this job posting? This will also delete all applications submitted for it. This cannot be undone.');">
+            {% csrf_token %}
+            <button type="submit" class="dashboard-btn" style="background: #dc2626; padding: 0.5rem 1.2rem; font-size: 0.85rem;">
+                Remove
+            </button>
+        </form>
     </div>
 </div>
     {% endfor %}

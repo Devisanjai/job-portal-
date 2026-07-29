@@ -7,8 +7,18 @@
 
 <div class="dashboard-wrap">
     <div class="dashboard-panel" style="max-width: 700px; margin: 2rem auto;">
-        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ job.job_title }}</h3>
+        <h3 style="font-size: 1.5rem; margin-bottom: 0.25rem;">{{ job.job_title }}</h3>
+        {% if job.company_name %}
+            <p style="font-size: 1.1rem; color: #dc2626; font-weight: 600; margin-bottom: 0.5rem;">🏢 {{ job.company_name }}</p>
+        {% endif %}
         <p style="color: #6b7280; margin-bottom: 1.5rem;">Posted on {{ job.posted_at|date:"d M Y, h:i A" }}</p>
+
+        {% if job.company_name %}
+        <div class="job-detail-row">
+            <span class="job-detail-label">Company Name</span>
+            <span class="job-detail-value">{{ job.company_name }}</span>
+        </div>
+        {% endif %}
 
         <div class="job-detail-row">
             <span class="job-detail-label">Job Description</span>
