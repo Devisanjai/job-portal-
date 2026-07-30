@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+from django.core.paginator import Paginator
 
 import razorpay
 import json
@@ -18,7 +19,7 @@ from django.views.decorators.http import require_POST
 
 from .models import (
     Job, JobApplication, Inquiry, Interview,
-    JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock,
+    JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock, Profile,
 )
 from .forms import (
     SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
@@ -127,6 +128,7 @@ def employer_login(request):
         if form.is_valid():
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
+            company_name = form.cleaned_data['company_name']
             try:
                 user_obj = User.objects.get(email=email)
                 username = user_obj.username
@@ -137,6 +139,15 @@ def employer_login(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
+
+                profile, created = Profile.objects.get_or_create(
+                    user=user,
+                    defaults={'is_employer': True, 'company_name': company_name}
+                )
+                if not created and company_name:
+                    profile.company_name = company_name
+                    profile.save()
+
                 return redirect('employer_dashboard')
             else:
                 messages.error(request, 'Incorrect password.')
@@ -149,27 +160,57 @@ def employer_login(request):
         form = EmployerLoginForm()
 
     return render(request, 'core/employer_login.html', {'form': form})
-
-
-@login_required(login_url='employer_login')
 def employer_dashboard(request):
     jobs = Job.objects.filter(posted_by=request.user)
-    applications = JobApplication.objects.filter(job__posted_by=request.user)
+    applications = JobApplication.objects.filter(job__posted_by=request.user).order_by('-applied_at')
     interviews = Interview.objects.filter(application__job__posted_by=request.user).order_by('scheduled_at')
     upcoming_interviews = interviews.filter(status='scheduled')[:5]
 
+    # Paginate recent candidates (5 per page)
+    paginator = Paginator(applications, 5)
+    page_number = request.GET.get('page', 1)
+    recent_candidates = paginator.get_page(page_number)
+
     context = {
-        'current_openings': jobs.count(),
-        'candidates_total': applications.count(),
-        'candidates_pending': applications.filter(status='applied').count(),
+        'jobs_posted_count': jobs.count(),
+        'applicants_total': applications.count(),
+        'applicants_pending': applications.filter(status='applied').count(),
         'interview_list': interviews.count(),
         'inquiries_total': 93,
         'inquiries_unread': 93,
         'upcoming_interviews': upcoming_interviews,
-        'recent_activity': applications.order_by('-applied_at')[:5],
-        'subscription': getattr(request.user, 'subscription', None),
+        'recent_candidates': recent_candidates,
     }
     return render(request, 'core/employer_dashboard.html', context)
+
+@login_required(login_url='employer_login')
+def company_profile(request):
+    profile, created = Profile.objects.get_or_create(
+        user=request.user,
+        defaults={'is_employer': True}
+    )
+
+    if request.method == 'POST':
+        profile.company_name = request.POST.get('company_name', '')
+        profile.phone = request.POST.get('phone', '')
+        profile.about = request.POST.get('about', '')
+        profile.industry = request.POST.get('industry', '')
+        profile.website = request.POST.get('website', '')
+        profile.company_size = request.POST.get('company_size', '')
+        founded_year = request.POST.get('founded_year', '')
+        profile.founded_year = founded_year if founded_year else None
+        profile.address = request.POST.get('address', '')
+        profile.city = request.POST.get('city', '')
+        profile.state = request.POST.get('state', '')
+
+        if request.FILES.get('logo'):
+            profile.logo = request.FILES['logo']
+
+        profile.save()
+        messages.success(request, 'Company profile updated.')
+        return redirect('company_profile')
+
+    return render(request, 'core/company_profile.html', {'profile': profile})
 
 
 def job_seeker_options(request):
@@ -202,16 +243,16 @@ def job_seeker_login(request):
 
 @login_required(login_url='employer_login')
 def post_job(request):
-    subscription = getattr(request.user, 'subscription', None)
+    if settings.SUBSCRIPTION_ENABLED:
+        subscription = getattr(request.user, 'subscription', None)
 
-    if not subscription or not subscription.can_post_job():
-        # Clear previous messages before adding a fresh warning
-        storage = get_messages(request)
-        for _ in storage:
-            pass
+        if not subscription or not subscription.can_post_job():
+            storage = get_messages(request)
+            for _ in storage:
+                pass
 
-        messages.warning(request, "You've reached your job posting limit for this plan. Upgrade to post more jobs.")
-        return redirect('subscription_plans')
+            messages.warning(request, "You've reached your job posting limit for this plan. Upgrade to post more jobs.")
+            return redirect('subscription_plans')
 
     if request.method == 'POST':
         form = JobPostForm(request.POST)
@@ -366,14 +407,17 @@ def unlock_resume(request, application_id):
     if already_unlocked:
         return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
-    subscription = getattr(request.user, 'subscription', None)
-    if not subscription or not subscription.can_view_resume():
-        messages.warning(request, "You've hit your resume view limit. Upgrade your plan to view more candidates.")
-        return redirect('subscription_plans')
+    if settings.SUBSCRIPTION_ENABLED:
+        subscription = getattr(request.user, 'subscription', None)
+        if not subscription or not subscription.can_view_resume():
+            messages.warning(request, "You've hit your resume view limit. Upgrade your plan to view more candidates.")
+            return redirect('subscription_plans')
 
     ResumeUnlock.objects.create(employer=request.user, application=application)
-    subscription.resumes_viewed_count += 1
-    subscription.save()
+
+    if settings.SUBSCRIPTION_ENABLED:
+        subscription.resumes_viewed_count += 1
+        subscription.save()
 
     return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
@@ -562,3 +606,30 @@ def delete_job(request, job_id):
     job.delete()
     messages.success(request, 'Job posting removed.')
     return redirect('jobs_list')
+
+@login_required(login_url='employer_login')
+def candidate_detail(request, application_id):
+    application = JobApplication.objects.get(id=application_id)
+
+    if application.job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to view that.')
+        return redirect('employer_dashboard')
+
+    return render(request, 'core/candidate_detail.html', {'application': application})
+
+def internships(request):
+    query = request.GET.get('q', '').strip()
+    location = request.GET.get('location', '').strip()
+
+    jobs = Job.objects.filter(job_type='internship').order_by('-posted_at')
+
+    if query:
+        jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    return render(request, 'core/internships.html', {
+        'jobs': jobs,
+        'query': query,
+        'location': location,
+    })

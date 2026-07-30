@@ -13,8 +13,9 @@
             · {{ current_sub.resumes_viewed_count }}/{{ current_sub.plan.resume_view_limit }} resume views used
         </p>
     </div>
-    {% endif %}
 
+    {% endif %}
+    
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         {% for plan in plans %}
         <div class="border rounded-xl p-6 shadow-sm flex flex-col {% if current_sub.plan_id == plan.id %}border-blue-500 ring-2 ring-blue-200{% endif %}">

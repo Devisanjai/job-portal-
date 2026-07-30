@@ -1,35 +1,18 @@
 {% extends 'core/dashboard_base.html' %}
 {% load static %}
-
 {% block title %}Employer Dashboard - Deploynix{% endblock %}
-
 {% block content %}
-
-
-
 <div class="dashboard-wrap">
-
-    {% if subscription %}
-    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:0.75rem 1.25rem; margin-bottom:1.5rem; font-size:0.875rem; color:#1e40af; display:flex; justify-content:space-between; align-items:center;">
-        <span>
-            <strong>{{ subscription.plan.name }} Plan</strong>
-            · {{ current_openings }}/{{ subscription.plan.job_post_limit }} job posts
-            · {{ subscription.resumes_viewed_count }}/{{ subscription.plan.resume_view_limit }} resume unlocks
-            · expires {{ subscription.expires_at|date:"d M Y" }}
-        </span>
-        <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline; white-space:nowrap; margin-left:1rem;">Manage Plan</a>
-    </div>
-    {% else %}
-    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1.25rem; margin-bottom:1.5rem; font-size:0.875rem; color:#991b1b;">
-        No active subscription. <a href="{% url 'subscription_plans' %}" style="font-weight:600; text-decoration:underline;">Choose a plan</a> to start posting jobs and viewing candidates.
-    </div>
-    {% endif %}
-
     <div class="dashboard-search-row">
-        <div style="display: flex; gap: 1rem; flex: 1; color: black;">
-            <input type="text" placeholder="Enter Job Roles / Skills">
-            <input type="text" placeholder="Enter Location">
-        </div>
+        <a href="{% url 'company_profile' %}" style="display:flex; align-items:center; gap:0.75rem; text-decoration:none;">
+            <div style="width:44px; height:44px; border-radius:50%; background:#f3f4f6; border:1px solid #d1d5db; display:flex; align-items:center; justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </div>
+            <span style="font-weight:600; color:#111827;">{{ request.user.profile.company_name|default:"Your Company" }}</span>
+        </a>
         <div class="dashboard-promo">
             Access millions of verified resumes and post your job for free today!
             <br>
@@ -38,19 +21,20 @@
     </div>
 
     <div class="dashboard-stats-grid">
-        <a href="{% url 'post_job' %}" class="dashboard-stat-card"
+        <a href="{% url 'jobs_list' %}" class="dashboard-stat-card"
             style="text-decoration: none; color: inherit; display: block;">
-            <h3>Current Openings</h3>
-            <div class="dashboard-stat-number">{{ current_openings }}</div>
+            <h3>Jobs Posted</h3>
+            <div class="dashboard-stat-number">{{ jobs_posted_count }}</div>
             <span class="dashboard-stat-icon">📋</span>
-            <div class="dashboard-stat-footer">{{ current_openings }} / 0 Total / Non-Active</div>
+            <div class="dashboard-stat-footer">{{ jobs_posted_count }} / 0 Total / Non-Active</div>
         </a>
-        <div class="dashboard-stat-card">
-            <h3>Candidates</h3>
-            <div class="dashboard-stat-number">{{ candidates_total }}</div>
+        <a href="{% url 'manage_candidates' %}" class="dashboard-stat-card"
+            style="text-decoration: none; color: inherit; display: block;">
+            <h3>Applicants</h3>
+            <div class="dashboard-stat-number">{{ applicants_total }}</div>
             <span class="dashboard-stat-icon">👁️</span>
-            <div class="dashboard-stat-footer">{{ candidates_pending }} / 0 Pending / Approved</div>
-        </div>
+            <div class="dashboard-stat-footer">{{ applicants_pending }} / 0 Pending / Approved</div>
+        </a>
         <div class="dashboard-stat-card">
             <h3>Interview List</h3>
             <div class="dashboard-stat-number">{{ interview_list }}</div>
@@ -70,7 +54,7 @@
         <a href="{% url 'add_candidate' %}" class="dashboard-action-btn">Add Candidate 👤</a>
         <a href="{% url 'add_interview' %}" class="dashboard-action-btn">Add Interview 🕐</a>
         <a href="{% url 'search_resume' %}" class="dashboard-action-btn">Search Resume 🔍</a>
-        <a href="#" class="dashboard-action-btn">Company Profile 🏢</a>
+        <a href="{% url 'company_profile' %}" class="dashboard-action-btn">Company Profile 🏢</a>
     </div>
 
     <div class="dashboard-panel">
@@ -92,18 +76,30 @@
     </div>
 
     <div class="dashboard-panel">
-        <h3>Recent Activity For Candidates</h3>
-        {% for app in recent_activity %}
-        <div class="dashboard-list-item">
+        <h3>Recent Candidates</h3>
+        {% for app in recent_candidates %}
+        <a href="{% url 'candidate_detail' app.id %}" class="dashboard-list-item" style="text-decoration:none; color:inherit; display:flex; justify-content:space-between; cursor:pointer;">
             <div>
                 <span class="dashboard-list-name">{{ app.display_full_name }}</span>
                 <div class="dashboard-list-sub">Applied for {{ app.job.job_title }}</div>
             </div>
             <div class="dashboard-list-date">{{ app.applied_at|date:"d M Y" }}</div>
-        </div>
+        </a>
         {% empty %}
         <p style="color: #6b7280; font-size: 0.9rem;">No recent activity yet.</p>
         {% endfor %}
+
+        {% if recent_candidates.paginator.num_pages > 1 %}
+        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+            {% for num in recent_candidates.paginator.page_range %}
+                <a href="?page={{ num }}"
+                   style="padding:0.25rem 0.6rem; border:1px solid #d1d5db; border-radius:4px; text-decoration:none;
+                   {% if recent_candidates.number == num %}background:#111827; color:#fff;{% else %}color:#111827;{% endif %}">
+                   {{ num }}
+                </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

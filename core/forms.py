@@ -23,16 +23,25 @@ class SignUpForm(forms.ModelForm):
 
 
 class EmployerLoginForm(forms.Form):
+    company_name = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+            'placeholder': 'Company Name',
+            'autocomplete': 'off'
+        })
+    )
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
             'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
-            'placeholder': 'Company Email'
+            'placeholder': 'Company Email',
+            'autocomplete': 'off'
         })
     )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
-            'placeholder': 'Password'
+            'placeholder': 'Password',
+            'autocomplete': 'new-password'
         })
     )
 class JobSeekerLoginForm(forms.Form):

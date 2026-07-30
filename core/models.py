@@ -4,10 +4,27 @@ from django.contrib.auth.models import User
 
 
 class Profile(models.Model):
+    COMPANY_SIZE_CHOICES = [
+        ('1-10', '1-10 employees'),
+        ('11-50', '11-50 employees'),
+        ('51-200', '51-200 employees'),
+        ('201-500', '201-500 employees'),
+        ('500+', '500+ employees'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     phone = models.CharField(max_length=15, blank=True)
     is_employer = models.BooleanField(default=False)
     company_name = models.CharField(max_length=200, blank=True)
+    logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
+    about = models.TextField(blank=True, help_text="Brief description of the company")
+    industry = models.CharField(max_length=100, blank=True)
+    website = models.URLField(blank=True)
+    company_size = models.CharField(max_length=20, choices=COMPANY_SIZE_CHOICES, blank=True)
+    founded_year = models.PositiveIntegerField(null=True, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

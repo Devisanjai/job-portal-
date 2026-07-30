@@ -127,3 +127,4 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 RAZORPAY_KEY_ID = "your_test_key_id"       # from Razorpay dashboard (test mode)
 RAZORPAY_KEY_SECRET = "your_test_key_secret"
+SUBSCRIPTION_ENABLED = False

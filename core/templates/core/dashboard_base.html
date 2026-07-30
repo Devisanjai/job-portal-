@@ -17,7 +17,7 @@
             <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
         </a>
         <span style="display: flex; align-items: center; gap: 1rem;">
-            Welcome, {{ request.user.username }}
+            Welcome, {{ request.user.profile.company_name|default:request.user.username }}
             <a href="{% url 'logout' %}" style="font-size: 0.85rem; color: inherit; text-decoration: underline; opacity: 0.85;">Logout</a>
         </span>
     </div>
@@ -35,7 +35,6 @@
             </div>
         </div>
         <a href="{% url 'inquiries' %}">Inquiries</a>
-        <a href="{% url 'subscription_plans' %}">Plans</a>
         <a href="#">Settings</a>
         <a href="#">Reports</a>
     </div>

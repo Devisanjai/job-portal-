@@ -37,6 +37,11 @@
         {% csrf_token %}
 
         <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Company Name</label>
+            {{ form.company_name }}
+        </div>
+
+        <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Company Email</label>
             {{ form.email }}
         </div>
