@@ -1190,3 +1190,228 @@ nav {
     font-size: 0.75rem;
     margin-top: 0.2rem;
 }
+
+/* ==========================================================================
+   22. DASHBOARD REDESIGN — Professional Layout Enhancements
+   ========================================================================== */
+
+.dashboard-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin: 2rem 0 0.75rem 0;
+}
+
+.dashboard-section-label:first-of-type {
+    margin-top: 0;
+}
+
+/* Company identity header */
+.dashboard-company-header {
+    background: white;
+    border: 2px solid #9ca3af;
+    border-radius: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-company-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.dashboard-company-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.dashboard-company-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dashboard-company-name {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #111827;
+}
+
+.dashboard-company-sub {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.1rem;
+}
+
+.dashboard-promo-inline {
+    background-color: #fdf2f2;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #7f1d1d;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Refined stat cards */
+.dashboard-stat-card.enhanced {
+    padding: 1.35rem 1.5rem;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-stat-card.enhanced:hover {
+    box-shadow: 0 8px 16px -6px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.dashboard-stat-icon.icon-blue-bg   { background-color: #2563eb; }
+.dashboard-stat-icon.icon-amber-bg  { background-color: #d97706; }
+.dashboard-stat-icon.icon-green-bg  { background-color: #16a34a; }
+.dashboard-stat-icon.icon-red-bg    { background-color: #dc2626; }
+
+/* Quick actions toolbar */
+.dashboard-actions-grid.enhanced .dashboard-action-btn {
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Two-column activity layout on larger screens */
+@media (min-width: 900px) {
+    .dashboard-panels-grid.activity-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+}
+
+.dashboard-panel.enhanced {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-panel.enhanced h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-panel-count {
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.15rem 0.6rem;
+    border-radius: 9999px;
+}
+
+.dashboard-list-item.clickable {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    margin: 0 -0.5rem;
+    padding: 0.9rem 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.dashboard-list-item.clickable:hover {
+    background-color: #fef2f2;
+}
+
+.dashboard-pagination {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.dashboard-pagination a {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: #111827;
+    transition: all 0.15s ease;
+}
+
+.dashboard-pagination a:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.dashboard-pagination a.active {
+    background: #111827;
+    color: white;
+    border-color: #111827;
+}
+/* ==========================================================================
+   23. DASHBOARD — QUICK ACTIONS (stretch + match card radius)
+   ========================================================================== */
+.dashboard-quick-actions-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+}
+
+.dashboard-quick-action {
+    width: 100%;
+    background: white;
+    border: 2px solid #9ca3af;
+    border-radius: 1rem;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-quick-action:hover {
+    border-color: #dc2626;
+    box-shadow: 0 8px 16px -6px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.dashboard-quick-action .job-category-icon {
+    font-size: 1.3rem;
+    padding: 0.65rem;
+}
+
+@media (max-width: 700px) {
+    .dashboard-quick-actions-row {
+        grid-template-columns: 1fr;
+    }
+}

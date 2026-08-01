@@ -36,9 +36,14 @@
     </div>
 </div>
     <div class="flex items-center gap-4">
-        <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
-        <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
-        <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
+        {% if user.is_authenticated %}
+            <span class="text-sm">Hi, {{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="border border-white px-4 py-2 rounded text-sm hover:text-red-400">Logout</a>
+        {% else %}
+            <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
+            <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
+            <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
+        {% endif %}
     </div>
 
 </nav>

@@ -1,105 +1,136 @@
 {% extends 'core/dashboard_base.html' %}
 {% load static %}
+
 {% block title %}Employer Dashboard - Deploynix{% endblock %}
+
 {% block content %}
-<div class="dashboard-wrap">
-    <div class="dashboard-search-row">
-        <a href="{% url 'company_profile' %}" style="display:flex; align-items:center; gap:0.75rem; text-decoration:none;">
-            <div style="width:44px; height:44px; border-radius:50%; background:#f3f4f6; border:1px solid #d1d5db; display:flex; align-items:center; justify-content:center;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+    <!-- Company Identity -->
+    <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-400 p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+        <a href="{% url 'company_profile' %}" class="flex items-center gap-4 group">
+            <div class="w-14 h-14 rounded-full bg-gray-100 border-2 border-gray-400 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {% if request.user.profile.logo %}
+                    <img src="{{ request.user.profile.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+                {% else %}
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                {% endif %}
             </div>
-            <span style="font-weight:600; color:#111827;">{{ request.user.profile.company_name|default:"Your Company" }}</span>
-        </a>
-        <div class="dashboard-promo">
-            Access millions of verified resumes and post your job for free today!
-            <br>
-            <a href="{% url 'post_job' %}" class="dashboard-action-btn">Post New Job 💼</a>
-        </div>
-    </div>
-
-    <div class="dashboard-stats-grid">
-        <a href="{% url 'jobs_list' %}" class="dashboard-stat-card"
-            style="text-decoration: none; color: inherit; display: block;">
-            <h3>Jobs Posted</h3>
-            <div class="dashboard-stat-number">{{ jobs_posted_count }}</div>
-            <span class="dashboard-stat-icon">📋</span>
-            <div class="dashboard-stat-footer">{{ jobs_posted_count }} / 0 Total / Non-Active</div>
-        </a>
-        <a href="{% url 'manage_candidates' %}" class="dashboard-stat-card"
-            style="text-decoration: none; color: inherit; display: block;">
-            <h3>Applicants</h3>
-            <div class="dashboard-stat-number">{{ applicants_total }}</div>
-            <span class="dashboard-stat-icon">👁️</span>
-            <div class="dashboard-stat-footer">{{ applicants_pending }} / 0 Pending / Approved</div>
-        </a>
-        <div class="dashboard-stat-card">
-            <h3>Interview List</h3>
-            <div class="dashboard-stat-number">{{ interview_list }}</div>
-            <span class="dashboard-stat-icon">🔔</span>
-            <div class="dashboard-stat-footer">0 / 0 Upcoming / Past</div>
-        </div>
-        <div class="dashboard-stat-card">
-            <h3>Inquiries</h3>
-            <div class="dashboard-stat-number">{{ inquiries_total }}</div>
-            <span class="dashboard-stat-icon">💼</span>
-            <div class="dashboard-stat-footer">0 / {{ inquiries_unread }} Read / Unread</div>
-        </div>
-    </div>
-
-    <div class="dashboard-actions-grid">
-        <a href="{% url 'post_job' %}" class="dashboard-action-btn">Post New Job 💼</a>
-        <a href="{% url 'add_candidate' %}" class="dashboard-action-btn">Add Candidate 👤</a>
-        <a href="{% url 'add_interview' %}" class="dashboard-action-btn">Add Interview 🕐</a>
-        <a href="{% url 'search_resume' %}" class="dashboard-action-btn">Search Resume 🔍</a>
-        <a href="{% url 'company_profile' %}" class="dashboard-action-btn">Company Profile 🏢</a>
-    </div>
-
-    <div class="dashboard-panel">
-        <h3>Upcoming Interviews</h3>
-        {% for interview in upcoming_interviews %}
-        <div class="dashboard-list-item">
             <div>
-                <span class="dashboard-list-name">{{ interview.application.display_full_name }}</span>
-                <span
-                    class="dashboard-badge {% if interview.status == 'hire' %}badge-hire{% else %}badge-offer{% endif %}">{{
-                    interview.get_status_display }}</span>
-                <div class="dashboard-list-sub">{{ interview.application.job.job_title }}</div>
+                <div class="text-lg font-bold text-gray-900 group-hover:text-red-600 transition">{{ request.user.profile.company_name|default:"Your Company" }}</div>
+                <div class="text-sm text-gray-700 font-medium">View & edit company profile →</div>
             </div>
-            <div class="dashboard-list-date">{{ interview.scheduled_at|date:"d/m/Y - h:i A" }}</div>
+        </a>
+        <div class="bg-red-50 border border-red-200 rounded-lg px-6 py-3 text-center">
+            <p class="text-sm text-red-900 font-medium mb-2">Access millions of verified resumes and post your job for free today!</p>
+            <a href="{% url 'post_job' %}" class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2 rounded">Post New Job 💼</a>
         </div>
-        {% empty %}
-        <p style="color: #6b7280; font-size: 0.9rem;">No upcoming interviews scheduled.</p>
-        {% endfor %}
     </div>
 
-    <div class="dashboard-panel">
-        <h3>Recent Candidates</h3>
-        {% for app in recent_candidates %}
-        <a href="{% url 'candidate_detail' app.id %}" class="dashboard-list-item" style="text-decoration:none; color:inherit; display:flex; justify-content:space-between; cursor:pointer;">
-            <div>
-                <span class="dashboard-list-name">{{ app.display_full_name }}</span>
-                <div class="dashboard-list-sub">Applied for {{ app.job.job_title }}</div>
-            </div>
-            <div class="dashboard-list-date">{{ app.applied_at|date:"d M Y" }}</div>
+    <!-- Overview -->
+    <h2 class="text-xs font-bold uppercase tracking-widest text-gray-700 mb-3">Overview</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        <a href="{% url 'jobs_list' %}" class="bg-pink-50 border-2 border-gray-400 rounded-2xl p-6 hover:shadow-md hover:-translate-y-1 transition duration-200 relative">
+            <span class="job-category-icon icon-purple absolute top-5 right-5">📋</span>
+            <div class="text-3xl font-bold text-gray-900 mb-1">{{ jobs_posted_count }}</div>
+            <p class="text-gray-900 text-sm font-semibold">Jobs Posted</p>
+            <div class="text-xs text-gray-700 font-medium mt-2">{{ jobs_posted_count }} total · 0 non-active</div>
         </a>
-        {% empty %}
-        <p style="color: #6b7280; font-size: 0.9rem;">No recent activity yet.</p>
-        {% endfor %}
+        <a href="{% url 'manage_candidates' %}" class="bg-blue-50 border-2 border-gray-400 rounded-2xl p-6 hover:shadow-md hover:-translate-y-1 transition duration-200 relative">
+            <span class="job-category-icon icon-blue absolute top-5 right-5">👁️</span>
+            <div class="text-3xl font-bold text-gray-900 mb-1">{{ applicants_total }}</div>
+            <p class="text-gray-900 text-sm font-semibold">Applicants</p>
+            <div class="text-xs text-gray-700 font-medium mt-2">{{ applicants_pending }} pending · 0 approved</div>
+        </a>
+        <div class="bg-yellow-50 border-2 border-gray-400 rounded-2xl p-6 relative">
+            <span class="job-category-icon icon-orange absolute top-5 right-5">🔔</span>
+            <div class="text-3xl font-bold text-gray-900 mb-1">{{ interview_list }}</div>
+            <p class="text-gray-900 text-sm font-semibold">Interview List</p>
+            <div class="text-xs text-gray-700 font-medium mt-2">0 upcoming · 0 past</div>
+        </div>
+        <div class="bg-green-50 border-2 border-gray-400 rounded-2xl p-6 relative">
+            <span class="job-category-icon icon-green absolute top-5 right-5">💼</span>
+            <div class="text-3xl font-bold text-gray-900 mb-1">{{ inquiries_total }}</div>
+            <p class="text-gray-900 text-sm font-semibold">Inquiries</p>
+            <div class="text-xs text-gray-700 font-medium mt-2">0 read · {{ inquiries_unread }} unread</div>
+        </div>
+    </div>
 
-        {% if recent_candidates.paginator.num_pages > 1 %}
-        <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-            {% for num in recent_candidates.paginator.page_range %}
-                <a href="?page={{ num }}"
-                   style="padding:0.25rem 0.6rem; border:1px solid #d1d5db; border-radius:4px; text-decoration:none;
-                   {% if recent_candidates.number == num %}background:#111827; color:#fff;{% else %}color:#111827;{% endif %}">
-                   {{ num }}
-                </a>
+    <!-- Quick Actions -->
+  <h2 class="text-xs font-bold uppercase tracking-widest text-gray-700 mb-3">Quick Actions</h2>
+    <div class="dashboard-quick-actions-row mb-10">
+        <a href="{% url 'post_job' %}" class="dashboard-quick-action">
+            <span class="job-category-icon icon-purple">💼</span>
+            <span class="font-semibold text-sm text-gray-900">Post New Job</span>
+        </a>
+
+        <a href="{% url 'search_resume' %}" class="dashboard-quick-action">
+            <span class="job-category-icon icon-green">🔍</span>
+            <span class="font-semibold text-sm text-gray-900">Search Resume</span>
+        </a>
+        <a href="{% url 'company_profile' %}" class="dashboard-quick-action">
+            <span class="job-category-icon icon-purple">🏢</span>
+            <span class="font-semibold text-sm text-gray-900">Company Profile</span>
+        </a>
+    </div>
+
+    <!-- Activity -->
+    <h2 class="text-xs font-bold uppercase tracking-widest text-gray-700 mb-3">Activity</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-400 p-6">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-300">
+                <h3 class="font-bold text-gray-900">Upcoming Interviews</h3>
+                <span class="bg-gray-200 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">{{ upcoming_interviews|length }}</span>
+            </div>
+            {% for interview in upcoming_interviews %}
+            <div class="dashboard-list-item">
+                <div>
+                    <span class="dashboard-list-name">{{ interview.application.display_full_name }}</span>
+                    <span
+                        class="dashboard-badge {% if interview.status == 'hire' %}badge-hire{% else %}badge-offer{% endif %}">{{
+                        interview.get_status_display }}</span>
+                    <div class="dashboard-list-sub">{{ interview.application.job.job_title }}</div>
+                </div>
+                <div class="dashboard-list-date">{{ interview.scheduled_at|date:"d/m/Y - h:i A" }}</div>
+            </div>
+            {% empty %}
+            <p class="text-gray-700 text-sm font-medium">No upcoming interviews scheduled.</p>
             {% endfor %}
         </div>
-        {% endif %}
+
+        <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-400 p-6">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b-2 border-gray-300">
+                <h3 class="font-bold text-gray-900">Recent Candidates</h3>
+                <span class="bg-gray-200 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">{{ applicants_total }}</span>
+            </div>
+            {% for app in recent_candidates %}
+            <a href="{% url 'candidate_detail' app.id %}" class="flex justify-between items-center py-3 px-2 -mx-2 rounded-lg hover:bg-red-50 transition no-underline text-inherit border-b border-gray-200 last:border-0">
+                <div>
+                    <span class="dashboard-list-name">{{ app.display_full_name }}</span>
+                    <div class="dashboard-list-sub">Applied for {{ app.job.job_title }}</div>
+                </div>
+                <div class="dashboard-list-date">{{ app.applied_at|date:"d M Y" }}</div>
+            </a>
+            {% empty %}
+            <p class="text-gray-700 text-sm font-medium">No recent activity yet.</p>
+            {% endfor %}
+
+            {% if recent_candidates.paginator.num_pages > 1 %}
+            <div class="flex gap-2 mt-4 pt-3 border-t-2 border-gray-300">
+                {% for num in recent_candidates.paginator.page_range %}
+                    <a href="?page={{ num }}"
+                       class="px-3 py-1 rounded text-sm border-2 font-medium {% if recent_candidates.number == num %}bg-gray-900 text-white border-gray-900{% else %}border-gray-400 text-gray-900 hover:border-red-500 hover:text-red-600{% endif %}">
+                       {{ num }}
+                    </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

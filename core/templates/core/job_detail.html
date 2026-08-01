@@ -58,7 +58,7 @@
             {% if is_owner %}
                 <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back to Dashboard</a>
             {% else %}
-                <a href="{% url 'home' %}" class="dashboard-btn">← Back to Jobs</a>
+                <a href="{% url 'job_vacancies' %}" class="dashboard-btn">← Back to Jobs</a>
                 <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
             {% endif %}
         </div>

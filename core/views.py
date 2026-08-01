@@ -120,23 +120,47 @@ def signup(request):
     else:
         form = SignUpForm()
     return render(request, 'core/signup.html', {'form': form})
+from django.views.decorators.cache import never_cache
 
-
+@never_cache
 def employer_login(request):
     if request.method == 'POST':
         form = EmployerLoginForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data['email']
+            email = form.cleaned_data['email'].strip()
             password = form.cleaned_data['password']
             company_name = form.cleaned_data['company_name']
-            try:
-                user_obj = User.objects.get(email=email)
-                username = user_obj.username
-            except User.DoesNotExist:
-                messages.error(request, 'No account found with that email.')
-                return render(request, 'core/employer_login.html', {'form': form})
 
-            user = authenticate(request, username=username, password=password)
+            user_obj = User.objects.filter(email__iexact=email).first()
+
+            if user_obj is None:
+                # No account yet — create one automatically
+                username = email  # use email as username to avoid collisions
+                user_obj = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                )
+                Profile.objects.create(
+                    user=user_obj,
+                    is_employer=True,
+                    company_name=company_name,
+                )
+
+                free_plan = SubscriptionPlan.objects.filter(name='Free').first()
+                if free_plan:
+                    EmployerSubscription.objects.create(
+                        user=user_obj,
+                        plan=free_plan,
+                        expires_at=timezone.now() + timedelta(days=free_plan.duration_days),
+                    )
+
+                user = authenticate(request, username=username, password=password)
+                login(request, user)
+                return redirect('employer_dashboard')
+
+            # Existing account — verify password
+            user = authenticate(request, username=user_obj.username, password=password)
             if user is not None:
                 login(request, user)
 
@@ -150,16 +174,15 @@ def employer_login(request):
 
                 return redirect('employer_dashboard')
             else:
-                messages.error(request, 'Incorrect password.')
+                messages.error(request, 'Incorrect password. If this is a new company, use a different email.')
     else:
-        # Clear accumulated unread messages from session when loading the login page
         storage = get_messages(request)
         for _ in storage:
             pass
-
         form = EmployerLoginForm()
 
     return render(request, 'core/employer_login.html', {'form': form})
+
 def employer_dashboard(request):
     jobs = Job.objects.filter(posted_by=request.user)
     applications = JobApplication.objects.filter(job__posted_by=request.user).order_by('-applied_at')
@@ -203,7 +226,10 @@ def company_profile(request):
         profile.city = request.POST.get('city', '')
         profile.state = request.POST.get('state', '')
 
-        if request.FILES.get('logo'):
+        if request.POST.get('remove_logo') == 'true':
+            profile.logo.delete(save=False)
+            profile.logo = None
+        elif request.FILES.get('logo'):
             profile.logo = request.FILES['logo']
 
         profile.save()
@@ -216,26 +242,45 @@ def company_profile(request):
 def job_seeker_options(request):
     return render(request, 'core/job_seeker_options.html')
 
-
 def job_seeker_login(request):
     next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
         form = JobSeekerLoginForm(request.POST)
         if form.is_valid():
-            username = form.cleaned_data['username']
+            username = form.cleaned_data['username'].strip()
             password = form.cleaned_data['password']
-            user = authenticate(request, username=username, password=password)
+
+            user_obj = User.objects.filter(username__iexact=username).first()
+
+            if user_obj is None:
+                # No account yet — create one automatically
+                user_obj = User.objects.create_user(
+                    username=username,
+                    email=username if '@' in username else '',
+                    password=password,
+                )
+                JobSeekerProfile.objects.create(
+                    user=user_obj,
+                    full_name=username,
+                    phone='',
+                )
+
+                user = authenticate(request, username=username, password=password)
+                login(request, user)
+                messages.info(request, 'Account created. Please complete your profile.')
+                return redirect('create_profile')
+
+            # Existing account — verify password
+            user = authenticate(request, username=user_obj.username, password=password)
             if user is not None:
                 login(request, user)
                 return redirect(next_url)
             else:
-                messages.error(request, 'Invalid username or password.')
+                messages.error(request, 'Incorrect password. If this is a new account, use a different username.')
     else:
-        # Clear unread messages on login page render
         storage = get_messages(request)
         for _ in storage:
             pass
-
         form = JobSeekerLoginForm()
 
     return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
@@ -488,7 +533,6 @@ def create_profile(request):
 
     return render(request, 'core/create_profile.html', {'form': form})
 
-
 @login_required(login_url='job_seeker_login')
 def edit_profile(request):
     profile, created = JobSeekerProfile.objects.get_or_create(
@@ -500,11 +544,17 @@ def edit_profile(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully.')
-            return redirect('edit_profile')
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            return redirect('job_vacancies')   # changed fallback
     else:
         form = JobSeekerProfileForm(instance=profile)
 
-    return render(request, 'core/edit_profile.html', {'form': form})
+    return render(request, 'core/edit_profile.html', {
+        'form': form,
+        'next': request.GET.get('next', ''),
+    })
 
 
 # ---- Subscription plans / Razorpay payment ----

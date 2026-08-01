@@ -34,4 +34,5 @@ urlpatterns = [
     path('company-profile/', views.company_profile, name='company_profile'),
     path('candidate/<int:application_id>/', views.candidate_detail, name='candidate_detail'),
     path('internships/', views.internships, name='internships'),
+    path('logout/', views.logout_view, name='logout'),
 ]

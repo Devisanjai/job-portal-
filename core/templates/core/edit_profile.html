@@ -9,8 +9,18 @@
     <h2 class="apply-job-title">Edit Your Profile</h2>
     <p class="apply-job-meta">Update your details below. Changes apply to all your existing applications.</p>
 
+    {% if messages %}
+    {% for message in messages %}
+    <div class="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
     <form method="post" enctype="multipart/form-data" class="add-candidate-form">
-        {% csrf_token %}
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    
         <div class="form-grid">
             {% for field in form %}
             <div class="form-group {% if field.name == 'certificates' or field.name == 'skills' %}form-group-full{% endif %}">
