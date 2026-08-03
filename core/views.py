@@ -9,13 +9,14 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
-
+from django.core.mail import send_mail
 import razorpay
 import json
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+
 
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -77,7 +78,6 @@ def home(request):
         'searched': searched,
     })
 
-
 def job_vacancies(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
@@ -95,8 +95,6 @@ def job_vacancies(request):
         'location': location,
         'searched': bool(query or location),
     })
-
-
 
 def signup(request):
     if request.method == 'POST':
@@ -242,6 +240,9 @@ def company_profile(request):
 def job_seeker_options(request):
     return render(request, 'core/job_seeker_options.html')
 
+
+
+
 def job_seeker_login(request):
     next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
@@ -267,6 +268,24 @@ def job_seeker_login(request):
 
                 user = authenticate(request, username=username, password=password)
                 login(request, user)
+
+                if user_obj.email:
+                    try:
+                        send_mail(
+                            subject='Welcome to Deploynix!',
+                            message=(
+                                f"Hi {username},\n\n"
+                                "Welcome to Deploynix — your account has been created successfully.\n"
+                                "Complete your profile to start applying for jobs and internships.\n\n"
+                                "Best,\nTeam Deploynix"
+                            ),
+                            from_email=None,
+                            recipient_list=[user_obj.email],
+                            fail_silently=True,
+                        )
+                    except Exception:
+                        pass
+
                 messages.info(request, 'Account created. Please complete your profile.')
                 return redirect('create_profile')
 
@@ -344,6 +363,27 @@ def apply_job(request, job_id):
             job=job,
             job_seeker_profile=profile,
         )
+
+        if request.user.email:
+            try:
+                send_mail(
+                    subject=f'Application Submitted: {job.job_title}',
+                    message=(
+                        f"Hi {profile.full_name},\n\n"
+                        f"Your application for the following position has been received:\n\n"
+                        f"Job Title: {job.job_title}\n"
+                        f"Location: {job.location}\n"
+                        f"Job Type: {job.job_type}\n\n"
+                        "The employer will review your profile and reach out if shortlisted.\n\n"
+                        "Best,\nTeam Deploynix"
+                    ),
+                    from_email=None,
+                    recipient_list=[request.user.email],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+
         return redirect('application_success', job_id=job.id)
 
     return render(request, 'core/apply_job.html', {'job': job, 'profile': profile})
