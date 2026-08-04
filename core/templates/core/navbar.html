@@ -2,47 +2,53 @@
 <nav class="bg-black text-white flex items-center justify-between px-10 py-4">
 
     <div class="flex items-center">
-    <a href="{% url 'home' %}">
-        <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-20">
-    </a>
-</div>
-
-  <div class="flex gap-10 text-base">
-    <a href="{% url 'job_vacancies' %}" class="hover:text-red-400">Job Vacancy</a>
-
-    <div class="nav-dropdown">
-        <a href="#" class="hover:text-red-400">Features</a>
-        <div class="nav-dropdown-menu">
-            <a href="#" class="nav-dropdown-item">✓ Smart Job Matching</a>
-            <a href="#" class="nav-dropdown-item">✓ Resume Builder</a>
-            <a href="#" class="nav-dropdown-item">✓ AI Interview Practice</a>
-        </div>
+        <a href="{% url 'home' %}">
+            <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-20">
+        </a>
     </div>
 
-    <div class="nav-dropdown">
-        <a href="{% url 'internships' %}" class="hover:text-red-400">Internships</a>
-        <div class="nav-dropdown-menu">
-            <a href="#" class="nav-dropdown-item">Part-time</a>
-            <a href="#" class="nav-dropdown-item">Full-time</a>
-            <a href="#" class="nav-dropdown-item">Remote</a>
-        </div>
-    </div>
+    <div class="flex gap-10 text-base">
+        <a href="{% url 'job_vacancies' %}" class="hover:text-red-400">Job Vacancy</a>
 
-    <div class="nav-dropdown">
-        <a href="#" class="hover:text-red-400">About Us</a>
-        <div class="nav-dropdown-menu">
-            <p class="nav-dropdown-text">We help students and professionals get hired faster.</p>
+        <div class="nav-dropdown">
+            <a href="#" class="hover:text-red-400">Features</a>
+            <div class="nav-dropdown-menu">
+                <a href="#" class="nav-dropdown-item">✓ Smart Job Matching</a>
+                <a href="#" class="nav-dropdown-item">✓ Resume Builder</a>
+                <a href="#" class="nav-dropdown-item">✓ AI Interview Practice</a>
+            </div>
+        </div>
+
+        <div class="nav-dropdown">
+            <a href="{% url 'internships' %}" class="hover:text-red-400">Internships</a>
+            <div class="nav-dropdown-menu">
+                <a href="#" class="nav-dropdown-item">Part-time</a>
+                <a href="#" class="nav-dropdown-item">Full-time</a>
+                <a href="#" class="nav-dropdown-item">Remote</a>
+            </div>
+        </div>
+
+        <div class="nav-dropdown">
+            <a href="#" class="hover:text-red-400">About Us</a>
+            <div class="nav-dropdown-menu">
+                <p class="nav-dropdown-text">We help students and professionals get hired faster.</p>
+            </div>
         </div>
     </div>
-</div>
     <div class="flex items-center gap-4">
         {% if user.is_authenticated %}
-            <span class="text-sm">Hi, {{ user.username }}</span>
-            <a href="{% url 'logout' %}" class="border border-white px-4 py-2 rounded text-sm hover:text-red-400">Logout</a>
+        {% if user.jobseeker_profile %}
+        {% if user.jobseeker_profile %}
+        <a href="{% url 'my_applications' %}" class="hover:text-red-400 text-sm mr-2">My Applications</a>
+        <a href="{% url 'ats_checker' %}" class="hover:text-red-400 text-sm mr-2">ATS Checker</a>
+        {% endif %}
+        {% endif %}
+        <span class="text-sm">Hi, {{ user.username }}</span>
+        <a href="{% url 'logout' %}" class="border border-white px-4 py-2 rounded text-sm hover:text-red-400">Logout</a>
         {% else %}
-            <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
-            <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
-            <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
+        <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
+        <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
+        <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
         {% endif %}
     </div>
 

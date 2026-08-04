@@ -16,6 +16,8 @@ from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+import re
+from pypdf import PdfReader
 
 
 from .models import (
@@ -240,7 +242,12 @@ def company_profile(request):
 def job_seeker_options(request):
     return render(request, 'core/job_seeker_options.html')
 
-
+@login_required(login_url='job_seeker_login')
+def my_applications(request):
+    applications = JobApplication.objects.filter(
+        job_seeker_profile__user=request.user
+    ).order_by('-applied_at')
+    return render(request, 'core/my_applications.html', {'applications': applications})
 
 
 def job_seeker_login(request):
@@ -284,7 +291,7 @@ def job_seeker_login(request):
                             fail_silently=True,
                         )
                     except Exception:
-                        pass
+                        print("EMAIL ERROR:", e)
 
                 messages.info(request, 'Account created. Please complete your profile.')
                 return redirect('create_profile')
@@ -347,7 +354,6 @@ def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
-
 @login_required(login_url='job_seeker_login')
 def apply_job(request, job_id):
     job = Job.objects.get(id=job_id)
@@ -358,7 +364,13 @@ def apply_job(request, job_id):
 
     profile = request.user.jobseeker_profile
 
+    already_applied = JobApplication.objects.filter(job=job, job_seeker_profile=profile).exists()
+
     if request.method == 'POST':
+        if already_applied:
+            messages.warning(request, 'You have already applied for this job.')
+            return redirect('job_detail', job_id=job.id)
+
         JobApplication.objects.create(
             job=job,
             job_seeker_profile=profile,
@@ -381,12 +393,16 @@ def apply_job(request, job_id):
                     recipient_list=[request.user.email],
                     fail_silently=True,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                print("EMAIL ERROR:", e)
 
         return redirect('application_success', job_id=job.id)
 
-    return render(request, 'core/apply_job.html', {'job': job, 'profile': profile})
+    return render(request, 'core/apply_job.html', {
+        'job': job,
+        'profile': profile,
+        'already_applied': already_applied,
+    })
 
 
 def application_success(request, job_id):
@@ -394,14 +410,30 @@ def application_success(request, job_id):
     return render(request, 'core/application_success.html', {'job': job})
 
 
-# ---- Candidate list helper ----
+@login_required(login_url='job_seeker_login')
+@require_POST
+def delete_application(request, application_id):
+    application = JobApplication.objects.get(id=application_id)
 
+    if application.job_seeker_profile.user != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('my_applications')
+
+    application.delete()
+    messages.success(request, 'Application withdrawn successfully.')
+    return redirect('my_applications')
+
+# ---- Candidate list helper ----
 def _candidate_list_context(request, applications, page_title, show_search=False, search_values=None):
     subscription = getattr(request.user, 'subscription', None)
     unlocked_ids = set(
         ResumeUnlock.objects.filter(employer=request.user, application__in=applications)
         .values_list('application_id', flat=True)
     )
+
+    for app in applications:
+        app.ats_score = compute_ats_score_for_application(app)
+
     context = {
         'applications': applications,
         'page_title': page_title,
@@ -412,7 +444,6 @@ def _candidate_list_context(request, applications, page_title, show_search=False
     if search_values is not None:
         context['search_values'] = search_values
     return context
-
 
 @login_required(login_url='employer_login')
 def new_applicants(request):
@@ -723,3 +754,105 @@ def internships(request):
         'query': query,
         'location': location,
     })
+
+   
+
+# Common words to ignore when extracting "skills" from a job description
+ATS_STOPWORDS = {
+    'the','and','for','with','you','your','are','will','have','has','this','that',
+    'from','our','who','can','all','any','into','out','not','but','they','their',
+    'work','experience','years','year','strong','good','excellent','ability',
+    'skills','skill','required','requirement','requirements','job','role','team',
+    'looking','candidate','candidates','knowledge','understanding','proficient',
+    'proficiency','familiarity','plus','preferred','including','etc','using',
+    'we','a','an','in','on','of','to','is','be','as','or','at',
+}
+
+
+def extract_text_from_resume(resume_file):
+    text = ''
+    try:
+        reader = PdfReader(resume_file)
+        for page in reader.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text + ' '
+    except Exception:
+        return ''
+    return text
+
+
+def extract_keywords(text):
+    words = re.findall(r'[a-zA-Z][a-zA-Z0-9+#./-]{1,}', text.lower())
+    keywords = set()
+    for w in words:
+        w = w.strip('.,-/')
+        if len(w) > 2 and w not in ATS_STOPWORDS:
+            keywords.add(w)
+    return keywords
+
+
+@login_required(login_url='job_seeker_login')
+def ats_checker(request):
+    result = None
+
+    if request.method == 'POST':
+        job_description = request.POST.get('job_description', '').strip()
+        profile = getattr(request.user, 'jobseeker_profile', None)
+
+        resume_file = request.FILES.get('resume')
+        if not resume_file and profile and profile.resume:
+            resume_file = profile.resume.open('rb')
+
+        if not job_description:
+            messages.error(request, 'Please paste a job description.')
+        elif not resume_file:
+            messages.error(request, 'Please upload a resume or add one to your profile first.')
+        else:
+            resume_text = extract_text_from_resume(resume_file)
+
+            if not resume_text.strip():
+                messages.error(request, 'Could not read text from that resume. Make sure it is a text-based PDF, not a scanned image.')
+            else:
+                jd_keywords = extract_keywords(job_description)
+                resume_keywords = extract_keywords(resume_text)
+
+                matched = sorted(jd_keywords & resume_keywords)
+                missing = sorted(jd_keywords - resume_keywords)
+
+                score = round((len(matched) / len(jd_keywords)) * 100) if jd_keywords else 0
+
+                result = {
+                    'score': score,
+                    'matched': matched,
+                    'missing': missing,
+                    'total_keywords': len(jd_keywords),
+                }
+
+    return render(request, 'core/ats_checker.html', {'result': result})
+
+
+def compute_ats_score_for_application(application):
+    job = application.job
+    profile = application.job_seeker_profile
+
+    jd_text = f"{job.job_title} {getattr(job, 'job_description', '')} {getattr(job, 'skills_required', '')}"
+    jd_keywords = extract_keywords(jd_text)
+
+    if not jd_keywords:
+        return None
+
+    resume_text = ''
+    if profile and getattr(profile, 'resume', None):
+        try:
+            resume_text = extract_text_from_resume(profile.resume.open('rb'))
+        except Exception:
+            resume_text = ''
+
+    if not resume_text.strip():
+        return None
+
+    resume_keywords = extract_keywords(resume_text)
+    matched = jd_keywords & resume_keywords
+    score = round((len(matched) / len(jd_keywords)) * 100)
+    return score

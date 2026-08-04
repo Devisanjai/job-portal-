@@ -35,4 +35,7 @@ urlpatterns = [
     path('candidate/<int:application_id>/', views.candidate_detail, name='candidate_detail'),
     path('internships/', views.internships, name='internships'),
     path('logout/', views.logout_view, name='logout'),
+    path('my-applications/', views.my_applications, name='my_applications'),
+    path('my-applications/<int:application_id>/delete/', views.delete_application, name='delete_application'),
+    path('ats-checker/', views.ats_checker, name='ats_checker'),
 ]

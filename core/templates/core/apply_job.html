@@ -25,9 +25,17 @@
     </div>
 
     <p style="margin: 1.5rem 0; color: #6b7280; font-size: 0.9rem;">
-        Not accurate? <a href="{% url 'edit_profile' %}" style="color: #dc2626; font-weight: 600;">Update your profile</a> before applying.
+        Not accurate? <a href="{% url 'edit_profile' %}" style="color: #dc2626; font-weight: 600;">Update your
+            profile</a> before applying.
     </p>
-
+    {% if already_applied %}
+    <div class="bg-yellow-50 text-yellow-800 text-sm p-3 rounded mb-4">
+        You've already applied for this job. Check <a href="{% url 'my_applications' %}"
+            class="text-red-600 font-semibold hover:underline">My Applications</a> for status.
+    </div>
+    {% else %}
+    <!-- your existing <form method="post">...Confirm & Apply button...</form> goes here -->
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="dashboard-btn">Confirm & Apply</button>

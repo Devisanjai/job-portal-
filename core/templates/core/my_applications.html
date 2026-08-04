@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block title %}My Applications - Deploynix{% endblock %}
+
+{% block content %}
+<div class="apply-page-wrap" style="max-width: 900px;">
+    <h2 class="apply-job-title">My Applications</h2>
+    <p class="apply-job-meta">Jobs you've applied to so far.</p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% for app in applications %}
+    <div class="job-list-card">
+        <div>
+            <div class="job-list-title">{{ app.job.job_title }}</div>
+            <div class="job-list-meta">{{ app.job.location }} · {{ app.job.job_type }}</div>
+            <div class="job-list-meta">Applied on {{ app.applied_at|date:"d M Y" }}</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
+            <form method="post" action="{% url 'delete_application' app.id %}"
+                  onsubmit="return confirm('Withdraw this application? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="dashboard-btn" style="background: #dc2626; padding: 0.4rem 1rem; font-size: 0.8rem;">
+                    Withdraw
+                </button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <div class="jobs-empty">You haven't applied to any jobs yet.</div>
+    {% endfor %}
+</div>
+{% endblock %}

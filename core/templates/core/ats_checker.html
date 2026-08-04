@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block title %}ATS Resume Checker - Deploynix{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 3rem auto; padding: 0 1rem;">
+    <h2 class="apply-job-title">ATS Resume Checker</h2>
+    <p class="apply-job-meta" style="margin-bottom: 2rem;">Paste a job description to see how well your resume matches.</p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="bg-red-50 text-red-600 text-sm p-3 rounded mb-4">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+
+        <div style="flex: 1 1 500px;">
+            <form method="post" enctype="multipart/form-data" class="add-candidate-form">
+                {% csrf_token %}
+                <div class="form-group form-group-full" style="margin-bottom: 1.5rem;">
+                    <label>Job Description</label>
+                    <textarea name="job_description" rows="10" placeholder="Paste the full job description here..." style="width:100%; border:2px solid #9ca3af; border-radius:0.375rem; padding:0.6rem 0.8rem; font-size:0.9rem; font-family: inherit;"></textarea>
+                </div>
+                <div class="form-group form-group-full" style="margin-bottom: 1.5rem;">
+                    <label>Resume (optional — uses your saved profile resume if left blank)</label>
+                    <input type="file" name="resume" accept=".pdf">
+                </div>
+                <button type="submit" class="dashboard-btn">Check Score</button>
+            </form>
+        </div>
+
+        <div style="flex: 1 1 280px; position: sticky; top: 2rem;">
+            {% if result %}
+            <div style="background: white; border: 2px solid #9ca3af; border-radius: 0.5rem; padding: 2rem; text-align: center;">
+                <div style="font-size: 3rem; font-weight: bold; color: {% if result.score >= 70 %}#16a34a{% elif result.score >= 40 %}#d97706{% else %}#dc2626{% endif %};">
+                    {{ result.score }}%
+                </div>
+                <p style="color: #6b7280;">Match Score</p>
+                <p style="color: #6b7280; font-size: 0.85rem;">{{ result.matched|length }} of {{ result.total_keywords }} keywords found</p>
+            </div>
+            {% else %}
+            <div style="background: #fafafa; border: 2px dashed #d1d5db; border-radius: 0.5rem; padding: 2rem; text-align: center; color: #9ca3af;">
+                Your score will appear here after checking.
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
