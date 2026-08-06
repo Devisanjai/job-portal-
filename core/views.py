@@ -18,6 +18,12 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 import re
 from pypdf import PdfReader
+from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.core.mail import send_mail
+from django.contrib import messages
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 
 from .models import (
@@ -355,55 +361,94 @@ def jobs_list(request):
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
 @login_required(login_url='job_seeker_login')
+
 def apply_job(request, job_id):
-    job = Job.objects.get(id=job_id)
+    job = get_object_or_404(Job, id=job_id)
 
     if not hasattr(request.user, 'jobseeker_profile'):
-        messages.info(request, 'Please complete your profile before applying.')
-        return redirect(f"{reverse('create_profile')}?next={reverse('apply_job', args=[job_id])}")
+        messages.info(
+            request,
+            'Please complete your profile before applying.'
+        )
+        return redirect(
+            f"{reverse('create_profile')}?next={reverse('apply_job', args=[job_id])}"
+        )
 
     profile = request.user.jobseeker_profile
 
-    already_applied = JobApplication.objects.filter(job=job, job_seeker_profile=profile).exists()
+    if request.method == "POST":
 
-    if request.method == 'POST':
+        already_applied = JobApplication.objects.filter(
+            job=job,
+            job_seeker_profile=profile
+        ).exists()
+
         if already_applied:
-            messages.warning(request, 'You have already applied for this job.')
-            return redirect('job_detail', job_id=job.id)
+            messages.warning(request, "You have already applied for this job.")
+            return redirect("job_detail", job_id=job.id)
 
-        JobApplication.objects.create(
+        application = JobApplication.objects.create(
             job=job,
             job_seeker_profile=profile,
         )
 
+        print("=" * 60)
+        print("APPLICATION CREATED")
+        print("User:", request.user.username)
+        print("Email:", request.user.email)
+        print("=" * 60)
+
         if request.user.email:
             try:
-                send_mail(
-                    subject=f'Application Submitted: {job.job_title}',
+                result = send_mail(
+                    subject=f"Application Submitted: {job.job_title}",
                     message=(
                         f"Hi {profile.full_name},\n\n"
-                        f"Your application for the following position has been received:\n\n"
-                        f"Job Title: {job.job_title}\n"
-                        f"Location: {job.location}\n"
-                        f"Job Type: {job.job_type}\n\n"
-                        "The employer will review your profile and reach out if shortlisted.\n\n"
-                        "Best,\nTeam Deploynix"
+                        f"Your application for '{job.job_title}' has been received successfully.\n\n"
+                        f"Location : {job.location}\n"
+                        f"Job Type : {job.job_type}\n\n"
+                        "The employer will review your application and "
+                        "contact you if you are shortlisted.\n\n"
+                        "Thank you for using Deploynix.\n\n"
+                        "Regards,\n"
+                        "Team Deploynix"
                     ),
-                    from_email=None,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[request.user.email],
-                    fail_silently=True,
+                    fail_silently=False,
                 )
+
+                print("EMAIL SENT RESULT:", result)
+
+                messages.success(
+                    request,
+                    "Application submitted successfully. Confirmation email sent."
+                )
+
             except Exception as e:
-                print("EMAIL ERROR:", e)
+                print("EMAIL ERROR:", str(e))
+                messages.error(
+                    request,
+                    f"Application saved, but email could not be sent: {e}"
+                )
 
-        return redirect('application_success', job_id=job.id)
+        else:
+            print("NO EMAIL FOUND FOR USER")
+            messages.warning(
+                request,
+                "Application submitted, but no email address is associated with your account."
+            )
 
-    return render(request, 'core/apply_job.html', {
-        'job': job,
-        'profile': profile,
-        'already_applied': already_applied,
-    })
+        return redirect("application_success", job_id=job.id)
 
+    return render(
+        request,
+        "core/apply_job.html",
+        {
+            "job": job,
+            "profile": profile,
+        },
+    )
 
 def application_success(request, job_id):
     job = Job.objects.get(id=job_id)
@@ -473,6 +518,7 @@ def search_resume(request):
     experience = request.GET.get('experience', '')
     education = request.GET.get('education', '')
     location = request.GET.get('location', '')
+    job_description = request.GET.get('job_description', '').strip()
 
     applications = JobApplication.objects.filter(job__posted_by=request.user)
 
@@ -497,7 +543,27 @@ def search_resume(request):
             Q(job__location__icontains=location) | Q(job_seeker_profile__location__icontains=location)
         )
 
-    applications = applications.order_by('-applied_at')
+    applications = list(applications.order_by('-applied_at'))
+
+    if job_description:
+        jd_keywords = extract_keywords(job_description)
+        for app in applications:
+            profile = app.job_seeker_profile
+            candidate_text = ' '.join(filter(None, [
+                getattr(profile, 'skills', '') if profile else '',
+                getattr(app, 'skills', '') or '',
+                getattr(profile, 'certificates', '') if profile else '',
+            ]))
+            candidate_keywords = extract_keywords(candidate_text)
+            if jd_keywords:
+                overlap = jd_keywords & candidate_keywords
+                app.jd_match_score = round((len(overlap) / len(jd_keywords)) * 100)
+            else:
+                app.jd_match_score = 0
+        applications.sort(key=lambda a: a.jd_match_score, reverse=True)
+    else:
+        for app in applications:
+            app.jd_match_score = None
 
     context = _candidate_list_context(
         request, applications, 'Search Resume',
@@ -505,6 +571,7 @@ def search_resume(request):
         search_values={
             'name': name, 'skills': skills, 'experience': experience,
             'education': education, 'location': location,
+            'job_description': job_description,
         },
     )
     return render(request, 'core/candidates_list.html', context)
