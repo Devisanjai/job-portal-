@@ -9,28 +9,28 @@
     <p class="text-gray-500 text-center mb-8">Log in to manage your job postings</p>
 
     {% if messages %}
-        <div id="messages-container">
-            {% for message in messages %}
-            <div class="message-box bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded mb-4">
-                {{ message }}
-            </div>
-            {% endfor %}
+    <div id="messages-container">
+        {% for message in messages %}
+        <div class="message-box bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded mb-4">
+            {{ message }}
         </div>
+        {% endfor %}
+    </div>
 
-        <script>
-            // Deduplicate messages on page load
-            document.addEventListener("DOMContentLoaded", function() {
-                const seenMessages = new Set();
-                document.querySelectorAll('#messages-container .message-box').forEach(box => {
-                    const text = box.innerText.trim();
-                    if (seenMessages.has(text)) {
-                        box.remove();
-                    } else {
-                        seenMessages.add(text);
-                    }
-                });
+    <script>
+        // Deduplicate messages on page load
+        document.addEventListener("DOMContentLoaded", function () {
+            const seenMessages = new Set();
+            document.querySelectorAll('#messages-container .message-box').forEach(box => {
+                const text = box.innerText.trim();
+                if (seenMessages.has(text)) {
+                    box.remove();
+                } else {
+                    seenMessages.add(text);
+                }
             });
-        </script>
+        });
+    </script>
     {% endif %}
 
     <form method="post" class="bg-white border-2 border-gray-400 rounded-lg p-8 shadow-sm">
@@ -54,6 +54,9 @@
         <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold">
             Log In
         </button>
+        <p class="text-center text-sm text-gray-500 mt-2">
+            <a href="{% url 'password_reset' %}" class="text-red-600 hover:underline">Forgot password?</a>
+        </p>
     </form>
 </div>
 

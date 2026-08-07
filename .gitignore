@@ -25,3 +25,5 @@ staticfiles/
 .idea/
 .DS_Store
 Thumbs.db
+.env
+backup_data.json

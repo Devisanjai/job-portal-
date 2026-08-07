@@ -604,7 +604,6 @@ def unlock_resume(request, application_id):
 
     return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
-
 @login_required(login_url='employer_login')
 def update_application_status(request, application_id):
     application = JobApplication.objects.get(id=application_id)
@@ -681,17 +680,24 @@ def edit_profile(request):
         form = JobSeekerProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
+
+            new_email = request.POST.get('email', '').strip()
+            if new_email:
+                request.user.email = new_email
+                request.user.save()
+
             messages.success(request, 'Profile updated successfully.')
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
-            return redirect('job_vacancies')   # changed fallback
+            return redirect('job_vacancies')
     else:
         form = JobSeekerProfileForm(instance=profile)
 
     return render(request, 'core/edit_profile.html', {
         'form': form,
         'next': request.GET.get('next', ''),
+        'current_email': request.user.email,
     })
 
 
@@ -908,7 +914,7 @@ def compute_ats_score_for_application(application):
 
     if not jd_keywords:
         return None
-
+    
     resume_text = ''
     if profile and getattr(profile, 'resume', None):
         try:

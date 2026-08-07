@@ -1415,3 +1415,32 @@ nav {
         grid-template-columns: 1fr;
     }
 }
+
+.password-reset-form input[type="email"],
+.password-reset-form input[type="password"] {
+    width: 100%;
+    border: 2px solid #9ca3af;
+    border-radius: 0.375rem;
+    padding: 0.6rem 1rem;
+}
+
+/* ==========================================================================
+   24. PASSWORD RESET FORMS — style Django's default auth inputs
+   ========================================================================== */
+input[type="password"],
+input[type="email"] {
+    border: 2px solid #9ca3af !important;
+    border-radius: 0.375rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+    color: #111827;
+    background-color: #ffffff;
+}
+
+input[type="password"]:focus,
+input[type="email"]:focus {
+    outline: none;
+    border-color: #dc2626 !important;
+}

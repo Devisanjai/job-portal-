@@ -20,7 +20,7 @@
     <form method="post" enctype="multipart/form-data" class="add-candidate-form">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
-    
+
         <div class="form-grid">
             {% for field in form %}
             <div class="form-group {% if field.name == 'certificates' or field.name == 'skills' %}form-group-full{% endif %}">
@@ -30,10 +30,15 @@
                 <div class="form-error">{{ field.errors }}</div>
                 {% endif %}
             </div>
+            {% if field.name == 'full_name' %}
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" value="{{ current_email }}" placeholder="you@example.com">
+            </div>
+            {% endif %}
             {% endfor %}
         </div>
         <button type="submit" class="dashboard-btn">Update Profile</button>
     </form>
 </div>
-
 {% endblock %}
