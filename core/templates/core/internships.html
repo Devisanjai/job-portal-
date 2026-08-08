@@ -42,9 +42,15 @@
                             <span class="bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-red-100">
                                 {{ job.number_of_openings }} opening{{ job.number_of_openings|pluralize }}
                             </span>
-                            <span class="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded hover:bg-red-700">
-                                View & Apply →
-                            </span>
+                            {% if job.id in applied_job_ids %}
+                                <span class="bg-green-50 text-green-700 text-sm font-semibold px-4 py-2 rounded border border-green-200">
+                                    ✓ Applied
+                                </span>
+                            {% else %}
+                                <span class="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded hover:bg-red-700">
+                                    View & Apply →
+                                </span>
+                            {% endif %}
                         </div>
                     </div>
                 </a>

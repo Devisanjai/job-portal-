@@ -26,6 +26,7 @@ class Profile(models.Model):
     city = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_email_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username
@@ -184,6 +185,7 @@ class JobSeekerProfile(models.Model):
     ats_score = models.PositiveIntegerField(null=True, blank=True, help_text="Placeholder for now")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_email_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.full_name

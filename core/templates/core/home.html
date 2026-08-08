@@ -32,7 +32,11 @@
             <div class="job-list-title">{{ job.job_title }}</div>
             <div class="job-list-meta">{{ job.location }} • {{ job.get_job_type_display }} • {{ job.get_experience_required_display }}</div>
         </div>
+        {% if job.id in applied_job_ids %}
+        <span class="job-list-openings" style="background-color: #dcfce7; color: #16a34a;">✓ Applied</span>
+        {% else %}
         <span class="job-list-openings">{{ job.number_of_openings }} opening{{ job.number_of_openings|pluralize }}</span>
+        {% endif %}
     </a>
     {% endfor %}
     {% else %}

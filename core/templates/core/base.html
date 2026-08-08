@@ -17,11 +17,24 @@
 
     {% include 'core/navbar.html' %}
 
+    {% if user.is_authenticated %}
+        {% if user.jobseeker_profile and not user.jobseeker_profile.is_email_verified %}
+        <div style="background:#fef3c7; color:#92400e; text-align:center; padding:0.6rem 1rem; font-size:0.85rem;">
+            Please verify your email address.
+            <a href="{% url 'resend_verification' %}" style="color:#b45309; font-weight:600; text-decoration:underline;">Resend verification email</a>
+        </div>
+        {% elif user.profile and not user.profile.is_email_verified %}
+        <div style="background:#fef3c7; color:#92400e; text-align:center; padding:0.6rem 1rem; font-size:0.85rem;">
+            Please verify your email address.
+            <a href="{% url 'resend_verification' %}" style="color:#b45309; font-weight:600; text-decoration:underline;">Resend verification email</a>
+        </div>
+        {% endif %}
+    {% endif %}
+
     {% block content %}
     {% endblock %}
 
     {% include 'core/footer.html' %}
-    
 
 </body>
 </html>

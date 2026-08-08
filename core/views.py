@@ -24,7 +24,9 @@ from django.core.mail import send_mail
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
-
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -79,11 +81,19 @@ def home(request):
     else:
         jobs = Job.objects.none()
 
+    applied_job_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        applied_job_ids = set(
+            JobApplication.objects.filter(job_seeker_profile=request.user.jobseeker_profile)
+            .values_list('job_id', flat=True)
+        )
+
     return render(request, 'core/home.html', {
         'jobs': jobs,
         'query': query,
         'location': location,
         'searched': searched,
+        'applied_job_ids': applied_job_ids,
     })
 
 def job_vacancies(request):
@@ -97,11 +107,19 @@ def job_vacancies(request):
     if location:
         jobs = jobs.filter(location__icontains=location)
 
+    applied_job_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        applied_job_ids = set(
+            JobApplication.objects.filter(job_seeker_profile=request.user.jobseeker_profile)
+            .values_list('job_id', flat=True)
+        )
+
     return render(request, 'core/job_vacancies.html', {
         'jobs': jobs,
         'query': query,
         'location': location,
         'searched': bool(query or location),
+        'applied_job_ids': applied_job_ids,
     })
 
 def signup(request):
@@ -163,6 +181,10 @@ def employer_login(request):
 
                 user = authenticate(request, username=username, password=password)
                 login(request, user)
+
+                if user_obj.email:
+                    send_verification_email(request, user_obj)
+
                 return redirect('employer_dashboard')
 
             # Existing account — verify password
@@ -188,7 +210,7 @@ def employer_login(request):
         form = EmployerLoginForm()
 
     return render(request, 'core/employer_login.html', {'form': form})
-
+@login_required(login_url='employer_login')
 def employer_dashboard(request):
     jobs = Job.objects.filter(posted_by=request.user)
     applications = JobApplication.objects.filter(job__posted_by=request.user).order_by('-applied_at')
@@ -296,8 +318,10 @@ def job_seeker_login(request):
                             recipient_list=[user_obj.email],
                             fail_silently=True,
                         )
-                    except Exception:
+                    except Exception as e:
                         print("EMAIL ERROR:", e)
+
+                    send_verification_email(request, user_obj)
 
                 messages.info(request, 'Account created. Please complete your profile.')
                 return redirect('create_profile')
@@ -316,8 +340,6 @@ def job_seeker_login(request):
         form = JobSeekerLoginForm()
 
     return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
-
-
 @login_required(login_url='employer_login')
 def post_job(request):
     if settings.SUBSCRIPTION_ENABLED:
@@ -575,7 +597,56 @@ def search_resume(request):
         },
     )
     return render(request, 'core/candidates_list.html', context)
+def send_verification_email(request, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    verify_url = request.build_absolute_uri(
+        reverse('verify_email', kwargs={'uidb64': uid, 'token': token})
+    )
+    try:
+        send_mail(
+            subject='Verify your Deploynix email',
+            message=(
+                f"Hi {user.username},\n\n"
+                "Please verify your email address to activate all features of your Deploynix account.\n\n"
+                f"Click here to verify: {verify_url}\n\n"
+                "If you didn't create this account, you can ignore this email.\n\n"
+                "Best,\nTeam Deploynix"
+            ),
+            from_email=None,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception as e:
+        print("VERIFICATION EMAIL ERROR:", e)
 
+
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        if hasattr(user, 'jobseeker_profile'):
+            user.jobseeker_profile.is_email_verified = True
+            user.jobseeker_profile.save()
+        if hasattr(user, 'profile'):
+            user.profile.is_email_verified = True
+            user.profile.save()
+        messages.success(request, 'Your email has been verified!')
+    else:
+        messages.error(request, 'This verification link is invalid or has expired.')
+
+    return redirect('home')
+
+
+@login_required(login_url='job_seeker_login')
+def resend_verification(request):
+    send_verification_email(request, request.user)
+    messages.info(request, 'Verification email sent. Please check your inbox.')
+    return redirect(request.META.get('HTTP_REFERER', 'home'))
 
 @login_required(login_url='employer_login')
 @require_POST
@@ -822,10 +893,18 @@ def internships(request):
     if location:
         jobs = jobs.filter(location__icontains=location)
 
+    applied_job_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        applied_job_ids = set(
+            JobApplication.objects.filter(job_seeker_profile=request.user.jobseeker_profile)
+            .values_list('job_id', flat=True)
+        )
+
     return render(request, 'core/internships.html', {
         'jobs': jobs,
         'query': query,
         'location': location,
+        'applied_job_ids': applied_job_ids,
     })
 
    
