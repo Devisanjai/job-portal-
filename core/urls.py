@@ -39,6 +39,11 @@ urlpatterns = [
     path('my-applications/', views.my_applications, name='my_applications'),
     path('my-applications/<int:application_id>/delete/', views.delete_application, name='delete_application'),
     path('ats-checker/', views.ats_checker, name='ats_checker'),
+    path('delete-account/', views.delete_account, name='delete_account'),
+    path('notifications/', views.notifications_list, name='notifications_list'),
+    path('notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
+    path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
+    path('saved-jobs/', views.saved_jobs_list, name='saved_jobs_list'),
     path('password-reset/', auth_views.PasswordResetView.as_view(
         template_name='core/password_reset_form.html',
         email_template_name='core/password_reset_email.html',

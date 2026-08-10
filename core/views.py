@@ -27,10 +27,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+from .models import Notification, SavedJob  
 
 from .models import (
     Job, JobApplication, Inquiry, Interview,
     JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock, Profile,
+    Notification, SavedJob,
 )
 from .forms import (
     SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
@@ -59,7 +61,13 @@ SERVICES_DATA = {
         'details': 'Get one-on-one mock interview sessions, feedback from industry experts, and tips on body language, communication, and technical presentation to walk into your interview with confidence.',
     },
 }
-
+def create_notification(user, message, notification_type='general', link=''):
+    Notification.objects.create(
+        user=user,
+        message=message,
+        notification_type=notification_type,
+        link=link,
+    )
 
 def service_detail(request, slug):
     service = SERVICES_DATA.get(slug)
@@ -370,10 +378,16 @@ def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
     is_owner = request.user.is_authenticated and request.user == job.posted_by
     base_template = 'core/dashboard_base.html' if is_owner else 'core/base.html'
+
+    is_saved = False
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        is_saved = SavedJob.objects.filter(user=request.user, job=job).exists()
+
     return render(request, 'core/job_detail.html', {
         'job': job,
         'is_owner': is_owner,
         'base_template': base_template,
+        'is_saved': is_saved,
     })
 
 
@@ -383,7 +397,6 @@ def jobs_list(request):
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
 @login_required(login_url='job_seeker_login')
-
 def apply_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
 
@@ -398,12 +411,12 @@ def apply_job(request, job_id):
 
     profile = request.user.jobseeker_profile
 
-    if request.method == "POST":
+    already_applied = JobApplication.objects.filter(
+        job=job,
+        job_seeker_profile=profile
+    ).exists()
 
-        already_applied = JobApplication.objects.filter(
-            job=job,
-            job_seeker_profile=profile
-        ).exists()
+    if request.method == "POST":
 
         if already_applied:
             messages.warning(request, "You have already applied for this job.")
@@ -414,11 +427,12 @@ def apply_job(request, job_id):
             job_seeker_profile=profile,
         )
 
-        print("=" * 60)
-        print("APPLICATION CREATED")
-        print("User:", request.user.username)
-        print("Email:", request.user.email)
-        print("=" * 60)
+        create_notification(
+            user=job.posted_by,
+            message=f"{profile.full_name} applied for {job.job_title}",
+            notification_type='new_applicant',
+            link=reverse('manage_candidates'),
+        )
 
         if request.user.email:
             try:
@@ -440,8 +454,6 @@ def apply_job(request, job_id):
                     fail_silently=False,
                 )
 
-                print("EMAIL SENT RESULT:", result)
-
                 messages.success(
                     request,
                     "Application submitted successfully. Confirmation email sent."
@@ -455,7 +467,6 @@ def apply_job(request, job_id):
                 )
 
         else:
-            print("NO EMAIL FOUND FOR USER")
             messages.warning(
                 request,
                 "Application submitted, but no email address is associated with your account."
@@ -469,6 +480,7 @@ def apply_job(request, job_id):
         {
             "job": job,
             "profile": profile,
+            "already_applied": already_applied,
         },
     )
 
@@ -688,8 +700,15 @@ def update_application_status(request, application_id):
         application.status = new_status
         application.save()
 
-    return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
+        if application.job_seeker_profile:
+            create_notification(
+                user=application.job_seeker_profile.user,
+                message=f"Your application for {application.job.job_title} is now {application.get_status_display()}",
+                notification_type='application_status',
+                link=reverse('my_applications'),
+            )
 
+    return redirect(request.META.get('HTTP_REFERER', 'manage_candidates'))
 
 def inquiries(request):
     inquiries = Inquiry.objects.all().order_by('-created_at')
@@ -1008,3 +1027,58 @@ def compute_ats_score_for_application(application):
     matched = jd_keywords & resume_keywords
     score = round((len(matched) / len(jd_keywords)) * 100)
     return score
+
+@login_required(login_url='job_seeker_login')
+@require_POST
+def delete_account(request):
+    user = request.user
+
+    if hasattr(user, 'jobseeker_profile'):
+        JobApplication.objects.filter(job_seeker_profile=user.jobseeker_profile).delete()
+
+    logout(request)
+    user.delete()
+    messages.success(request, 'Your account has been permanently deleted.')
+    return redirect('home')
+
+def create_notification(user, message, notification_type='general', link=''):
+    Notification.objects.create(
+        user=user,
+        message=message,
+        notification_type=notification_type,
+        link=link,
+    )
+
+@login_required
+def notifications_list(request):
+    notifications = request.user.notifications.all()[:30]
+    request.user.notifications.filter(is_read=False).update(is_read=True)
+    base_template = 'core/dashboard_base.html' if hasattr(request.user, 'profile') and request.user.profile.is_employer else 'core/base.html'
+    return render(request, 'core/notifications.html', {
+        'notifications': notifications,
+        'base_template': base_template,
+    })
+
+
+@login_required
+def unread_notification_count(request):
+    count = request.user.notifications.filter(is_read=False).count()
+    return JsonResponse({'count': count})
+
+@login_required(login_url='job_seeker_login')
+@require_POST
+def toggle_save_job(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+    saved, created = SavedJob.objects.get_or_create(user=request.user, job=job)
+    if not created:
+        saved.delete()
+        messages.info(request, 'Job removed from saved jobs.')
+    else:
+        messages.success(request, 'Job saved.')
+    return redirect(request.META.get('HTTP_REFERER', 'job_vacancies'))
+
+
+@login_required(login_url='job_seeker_login')
+def saved_jobs_list(request):
+    saved = SavedJob.objects.filter(user=request.user).select_related('job')
+    return render(request, 'core/saved_jobs.html', {'saved': saved})

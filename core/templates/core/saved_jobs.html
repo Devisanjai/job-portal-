@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Saved Jobs - Deploynix{% endblock %}
+
+{% block content %}
+<div class="apply-page-wrap" style="max-width: 900px;">
+    <h2 class="apply-job-title">Saved Jobs</h2>
+    <p class="apply-job-meta">Jobs you've bookmarked for later.</p>
+
+    {% for item in saved %}
+    <a href="{% url 'job_detail' item.job.id %}" class="job-list-card">
+        <div>
+            <div class="job-list-title">{{ item.job.job_title }}</div>
+            <div class="job-list-meta">{{ item.job.location }} · {{ item.job.get_job_type_display }}</div>
+            <div class="job-list-meta">Saved {{ item.saved_at|timesince }} ago</div>
+        </div>
+        <span class="job-list-openings">{{ item.job.number_of_openings }} opening{{ item.job.number_of_openings|pluralize }}</span>
+    </a>
+    {% empty %}
+    <div class="jobs-empty">
+        <p>You haven't saved any jobs yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

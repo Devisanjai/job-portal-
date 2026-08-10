@@ -17,6 +17,10 @@
             <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
         </a>
         <span style="display: flex; align-items: center; gap: 1rem;">
+            <a href="{% url 'notifications_list' %}" style="position: relative; display: inline-flex; align-items: center; color: inherit;" title="Notifications">
+                🔔
+                <span id="notif-badge" style="display: none; position: absolute; top: -6px; right: -8px; background: #dc2626; color: white; font-size: 0.65rem; font-weight: bold; min-width: 16px; height: 16px; border-radius: 9999px; align-items: center; justify-content: center; padding: 0 3px;"></span>
+            </a>
             Welcome, {{ request.user.profile.company_name|default:request.user.username }}
             <a href="{% url 'logout' %}" style="font-size: 0.85rem; color: inherit; text-decoration: underline; opacity: 0.85;">Logout</a>
         </span>
@@ -50,6 +54,27 @@
 {% endif %}
     {% block content %}
     {% endblock %}
+
+    <script>
+    function updateNotifBadge() {
+        fetch("{% url 'unread_notification_count' %}")
+            .then(res => res.json())
+            .then(data => {
+                const badge = document.getElementById('notif-badge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 9 ? '9+' : data.count;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+    updateNotifBadge();
+    setInterval(updateNotifBadge, 30000);
+    </script>
 
 </body>
 </html>

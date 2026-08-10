@@ -1,0 +1,26 @@
+{% extends base_template %}
+
+{% block title %}Notifications - Deploynix{% endblock %}
+
+{% block content %}
+<div class="apply-page-wrap" style="max-width: 700px;">
+    <h2 class="apply-job-title">Notifications</h2>
+    <p class="apply-job-meta">Recent updates on your account and applications.</p>
+
+    {% for note in notifications %}
+    <a href="{{ note.link|default:'#' }}" class="job-list-card" style="{% if not note.is_read %}background: #fef2f2;{% endif %}">
+        <div>
+            <div class="job-list-title" style="font-size: 0.95rem;">{{ note.message }}</div>
+            <div class="job-list-meta">{{ note.created_at|timesince }} ago</div>
+        </div>
+        {% if not note.is_read %}
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #dc2626; flex-shrink: 0;"></span>
+        {% endif %}
+    </a>
+    {% empty %}
+    <div class="jobs-empty">
+        <p>No notifications yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

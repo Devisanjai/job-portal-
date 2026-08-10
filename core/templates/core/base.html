@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,33 +9,46 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}?v=3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
-        body { font-family: 'Playfair Display', serif; }
+        body {
+            font-family: 'Playfair Display', serif;
+        }
     </style>
 </head>
+
 <body>
 
     {% include 'core/navbar.html' %}
-
-    {% if user.is_authenticated %}
-        {% if user.jobseeker_profile and not user.jobseeker_profile.is_email_verified %}
-        <div style="background:#fef3c7; color:#92400e; text-align:center; padding:0.6rem 1rem; font-size:0.85rem;">
-            Please verify your email address.
-            <a href="{% url 'resend_verification' %}" style="color:#b45309; font-weight:600; text-decoration:underline;">Resend verification email</a>
-        </div>
-        {% elif user.profile and not user.profile.is_email_verified %}
-        <div style="background:#fef3c7; color:#92400e; text-align:center; padding:0.6rem 1rem; font-size:0.85rem;">
-            Please verify your email address.
-            <a href="{% url 'resend_verification' %}" style="color:#b45309; font-weight:600; text-decoration:underline;">Resend verification email</a>
-        </div>
-        {% endif %}
-    {% endif %}
 
     {% block content %}
     {% endblock %}
 
     {% include 'core/footer.html' %}
+    {% if user.is_authenticated %}
+    <script>
+        function updateNotifBadge() {
+            fetch("{% url 'unread_notification_count' %}")
+                .then(res => res.json())
+                .then(data => {
+                    const badge = document.getElementById('notif-badge');
+                    if (badge) {
+                        if (data.count > 0) {
+                            badge.textContent = data.count > 9 ? '9+' : data.count;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(() => { });
+        }
+        updateNotifBadge();
+        setInterval(updateNotifBadge, 30000);
+    </script>
+    {% endif %}
 
 </body>
+
 </html>

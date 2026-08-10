@@ -54,12 +54,22 @@
         </div>
         {% endif %}
 
-        <div style="margin-top: 2rem; display: flex; justify-content: space-between;">
+        <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
             {% if is_owner %}
                 <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back to Dashboard</a>
             {% else %}
                 <a href="{% url 'job_vacancies' %}" class="dashboard-btn">← Back to Jobs</a>
-                <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    {% if user.is_authenticated and user.jobseeker_profile %}
+                    <form method="post" action="{% url 'toggle_save_job' job.id %}">
+                        {% csrf_token %}
+                        <button type="submit" style="background: white; border: 1.5px solid {% if is_saved %}#dc2626{% else %}#9ca3af{% endif %}; color: {% if is_saved %}#dc2626{% else %}#374151{% endif %}; padding: 0.6rem 1.2rem; border-radius: 0.375rem; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
+                            {% if is_saved %}★ Saved{% else %}☆ Save{% endif %}
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'apply_job' job.id %}" class="dashboard-btn">Apply Now →</a>
+                </div>
             {% endif %}
         </div>
     </div>

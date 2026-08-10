@@ -233,3 +233,37 @@ class ResumeUnlock(models.Model):
 
     def __str__(self):
         return f"{self.employer.username} unlocked {self.application_id}"
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('application_status', 'Application Status Update'),
+        ('new_applicant', 'New Applicant'),
+        ('profile_reminder', 'Profile Reminder'),
+        ('general', 'General'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES, default='general')
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=255, blank=True, help_text="URL path to redirect to, e.g. /my-applications/")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.message[:40]}"
+
+class SavedJob(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_jobs')
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='saved_by')
+    saved_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'job')
+        ordering = ['-saved_at']
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.job.job_title}"

@@ -37,18 +37,21 @@
     </div>
     <div class="flex items-center gap-4">
         {% if user.is_authenticated %}
-            {% if user.jobseeker_profile %}
-                <a href="{% url 'my_applications' %}" class="hover:text-red-400 text-sm mr-2">My Applications</a>
-                <a href="{% url 'ats_checker' %}" class="hover:text-red-400 text-sm mr-2">ATS Checker</a>
-                <a href="{% url 'edit_profile' %}" class="text-sm hover:text-red-400">Hi, {{ user.username }}</a>
-            {% else %}
-                <a href="{% url 'company_profile' %}" class="text-sm hover:text-red-400">Hi, {{ user.username }}</a>
-            {% endif %}
-            <a href="{% url 'logout' %}" class="border border-white px-4 py-2 rounded text-sm hover:text-red-400">Logout</a>
+        {% if user.jobseeker_profile %}
+        <a href="{% url 'my_applications' %}" class="hover:text-red-400 text-sm mr-2">My Applications</a>
+        <a href="{% url 'saved_jobs_list' %}" class="hover:text-red-400 text-sm mr-2">Saved Jobs</a>
+        <a href="{% url 'ats_checker' %}" class="hover:text-red-400 text-sm mr-2">ATS Checker</a>
+
+        
+        <a href="{% url 'edit_profile' %}" class="text-sm hover:text-red-400">Hi, {{ user.username }}</a>
         {% else %}
-            <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
-            <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
-            <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
+        <a href="{% url 'company_profile' %}" class="text-sm hover:text-red-400">Hi, {{ user.username }}</a>
+        {% endif %}
+        <a href="{% url 'logout' %}" class="border border-white px-4 py-2 rounded text-sm hover:text-red-400">Logout</a>
+        {% else %}
+        <a href="{% url 'employer_login' %}" class="border border-white px-4 py-2 rounded text-sm">For Employers</a>
+        <a href="{% url 'job_seeker_login' %}" class="border border-white px-4 py-2 rounded text-sm">Job Seekers</a>
+        <a href="{% url 'signup' %}" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded font-semibold">Sign Up</a>
         {% endif %}
     </div>
 
