@@ -27,3 +27,4 @@ staticfiles/
 Thumbs.db
 .env
 backup_data.json
+staticfiles/

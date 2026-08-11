@@ -1,6 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
+from django.core.exceptions import ValidationError
 
+
+def validate_file_size(value):
+    max_size_mb = 5
+    if value.size > max_size_mb * 1024 * 1024:
+        raise ValidationError(f'File size must be under {max_size_mb}MB.')
 
 
 class Profile(models.Model):
@@ -76,8 +83,8 @@ class JobApplication(models.Model):
 
     # Linked path — set when a logged-in job seeker with a profile applies
     job_seeker_profile = models.ForeignKey(
-    'JobSeekerProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='applications'
-)
+        'JobSeekerProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='applications'
+    )
 
     # Walk-in path — used only when job_seeker_profile is null (employer manually added this candidate)
     full_name = models.CharField(max_length=200, blank=True)
@@ -86,7 +93,13 @@ class JobApplication(models.Model):
     education = models.CharField(max_length=200, blank=True)
     skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
     experience = models.CharField(max_length=100, blank=True)
-    resume = models.FileField(upload_to='resumes/', blank=True, null=True)
+    resume = models.FileField(
+        upload_to='resumes/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf']), validate_file_size],
+        help_text="PDF only, max 5MB"
+    )
 
     cover_note = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
@@ -181,7 +194,13 @@ class JobSeekerProfile(models.Model):
     skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
     experience = models.CharField(max_length=100, blank=True)
     preferred_job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, blank=True)
-    resume = models.FileField(upload_to='profile_resumes/', blank=True, null=True)
+    resume = models.FileField(
+        upload_to='profile_resumes/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf']), validate_file_size],
+        help_text="PDF only, max 5MB"
+    )
     ats_score = models.PositiveIntegerField(null=True, blank=True, help_text="Placeholder for now")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
