@@ -28,7 +28,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .models import Notification, SavedJob  
-from django.http import HttpResponse
 
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -638,19 +637,7 @@ def send_verification_email(request, user):
 
 
 
-def email_test_status(request):
-    try:
-        sent = send_mail(
-            subject='Deploynix Live SMTP Diagnostic Test',
-            message='Congratulations! Your Render email setup is working.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[settings.EMAIL_HOST_USER],
-            fail_silently=False,
-        )
-        return HttpResponse(f"<h2 style='color:green;'>SUCCESS!</h2><p>Sent: {sent} email to {settings.EMAIL_HOST_USER} from {settings.DEFAULT_FROM_EMAIL} via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}</p>")
-    except Exception as e:
-        import traceback
-        return HttpResponse(f"<h2 style='color:red;'>FAILED!</h2><pre>{traceback.format_exc()}</pre>", status=500)
+
 
 
 def verify_email(request, uidb64, token):

@@ -44,7 +44,6 @@ urlpatterns = [
 
     path('notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
     path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
-    path('test-smtp/', views.email_test_status, name='email_test_status'),
     path('saved-jobs/', views.saved_jobs_list, name='saved_jobs_list'),
     path('password-reset/', auth_views.PasswordResetView.as_view(
         template_name='core/password_reset_form.html',
