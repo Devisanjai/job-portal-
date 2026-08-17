@@ -135,9 +135,12 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
 
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD') 
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# Read SMTP sender credentials from Environment Variables
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER') or config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD') or config('EMAIL_HOST_PASSWORD', default='')
+
+DEFAULT_FROM_EMAIL = f"Deploynix <{EMAIL_HOST_USER}>"
 SERVER_EMAIL = EMAIL_HOST_USER
+
 EMAIL_TIMEOUT = 10
 
