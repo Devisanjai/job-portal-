@@ -41,6 +41,7 @@ urlpatterns = [
     path('ats-checker/', views.ats_checker, name='ats_checker'),
     path('delete-account/', views.delete_account, name='delete_account'),
     path('notifications/', views.notifications_list, name='notifications_list'),
+    path('test-smtp/', views.test_smtp, name='test_smtp'),
     path('notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
     path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
     path('test-smtp/', views.email_test_status, name='email_test_status'),
