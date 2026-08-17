@@ -1103,17 +1103,3 @@ def saved_jobs_list(request):
     saved = SavedJob.objects.filter(user=request.user).select_related('job')
     return render(request, 'core/saved_jobs.html', {'saved': saved})
 
-from django.http import HttpResponse
-
-def test_smtp(request):
-    try:
-        result = send_mail(
-            subject='SMTP Test',
-            message='Testing SMTP from Render.',
-            from_email=None,
-            recipient_list=['devisanjai2004@gmail.com'],
-            fail_silently=False,
-        )
-        return HttpResponse(f"SUCCESS: {result}")
-    except Exception as e:
-        return HttpResponse(f"ERROR: {type(e).__name__}: {str(e)}", status=500)
