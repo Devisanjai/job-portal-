@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
-
+from django.utils import timezone 
 
 def validate_file_size(value):
     max_size_mb = 5
@@ -105,7 +105,7 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='applied')
     is_bookmarked = models.BooleanField(default=False)
     applied_at = models.DateTimeField(auto_now_add=True)
-
+    is_viewed = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.display_full_name} - {self.job.job_title}"
 
@@ -286,3 +286,22 @@ class SavedJob(models.Model):
 
     def __str__(self):
         return f"{self.user.username} saved {self.job.job_title}"
+
+class JobSeekerSignupOTP(models.Model):
+    """
+    Holds a job seeker signup in a 'pending' state until the email OTP is
+    verified. No User/JobSeekerProfile is created until then.
+    """
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField()
+    password_hash = models.CharField(max_length=128, help_text="Already-hashed password, never stored in plain text")
+    otp_code = models.CharField(max_length=6)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"Pending signup: {self.username} ({self.email})"

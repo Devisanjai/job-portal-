@@ -45,32 +45,52 @@
             </form>
         </div>
         {% endif %}
+
         <div style="flex: 1;">
             {% if applications %}
             {% for app in applications %}
-            <div class="candidate-card">
-                <div>
-                    <div class="candidate-name">{{ app.display_full_name }}</div>
-                    <div class="candidate-meta">{{ app.display_email }} • {{ app.display_phone }}</div>
-                    <div class="candidate-meta">{{ app.display_education }} • {{ app.display_experience }}</div>
-                    <div class="candidate-meta">Skills: {{ app.display_skills }}</div>
-                    <span class="candidate-job-tag">Applied for: {{ app.job.job_title }}</span>
-                    <br>
-                    {% if app.display_resume %}
-                    <a href="{{ app.display_resume.url }}" target="_blank" class="candidate-resume-link">📄 View Resume</a>
-                    {% endif %}
-                    {% if app.ats_score is not None %}
-                    <span style="display:inline-block; margin-left:0.75rem; font-size:0.75rem; font-weight:600; padding:0.15rem 0.6rem; border-radius:9999px; background: {% if app.ats_score >= 70 %}#dcfce7{% elif app.ats_score >= 40 %}#fef3c7{% else %}#fee2e2{% endif %}; color: {% if app.ats_score >= 70 %}#16a34a{% elif app.ats_score >= 40 %}#d97706{% else %}#dc2626{% endif %};">
-                        ATS {{ app.ats_score }}%
-                    </span>
-                    {% endif %}
-                    {% if app.jd_match_score is not None %}
-                    <span style="display:inline-block; margin-left:0.5rem; font-size:0.75rem; font-weight:600; padding:0.15rem 0.6rem; border-radius:9999px; background:#ede9fe; color:#7c3aed;">
-                        JD Match {{ app.jd_match_score }}%
-                    </span>
-                    {% endif %}
+            <div class="candidate-card" style="padding: 1.25rem 1.5rem; {% if not app.is_viewed %}border-left: 4px solid #2563eb; background: #fafbff;{% endif %}">
+                <div style="flex: 1;">
+                    <!-- Candidate Name as Link + Viewed Badge -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        <a href="{% url 'candidate_detail' app.id %}" style="font-size: 1.2rem; font-weight: 700; color: #1e293b; text-decoration: none;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#1e293b'">
+                            {{ app.display_full_name }}
+                            <span style="font-size: 0.9rem; color: #2563eb; margin-left: 0.25rem;">→</span>
+                        </a>
+
+                        {% if not app.is_viewed %}
+                        <span style="font-size: 0.75rem; font-weight: 600; background: #dbeafe; color: #1d4ed8; padding: 0.15rem 0.6rem; border-radius: 9999px;">
+                            🔵 New
+                        </span>
+                        {% else %}
+                        <span style="font-size: 0.75rem; font-weight: 500; background: #f3f4f6; color: #6b7280; padding: 0.15rem 0.6rem; border-radius: 9999px;">
+                            ✓ Viewed
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Role and Score Badges Only -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <span class="candidate-job-tag" style="margin: 0;">
+                            Applied for: <strong style="color: #374151;">{{ app.job.job_title }}</strong>
+                        </span>
+
+                        {% if app.ats_score is not None %}
+                        <span style="font-size:0.75rem; font-weight:600; padding:0.2rem 0.65rem; border-radius:9999px; background: {% if app.ats_score >= 70 %}#dcfce7{% elif app.ats_score >= 40 %}#fef3c7{% else %}#fee2e2{% endif %}; color: {% if app.ats_score >= 70 %}#16a34a{% elif app.ats_score >= 40 %}#d97706{% else %}#dc2626{% endif %};">
+                            ATS {{ app.ats_score }}%
+                        </span>
+                        {% endif %}
+
+                        {% if app.jd_match_score is not None %}
+                        <span style="font-size:0.75rem; font-weight:600; padding:0.2rem 0.65rem; border-radius:9999px; background:#ede9fe; color:#7c3aed;">
+                            JD Match {{ app.jd_match_score }}%
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div style="text-align: right;">
+
+                <!-- Right Side: Status Badge & Change Status Dropdown -->
+                <div style="text-align: right; min-width: 140px;">
                     <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
                     <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top: 0.5rem;">
                         {% csrf_token %}

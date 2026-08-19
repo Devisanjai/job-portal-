@@ -25,6 +25,16 @@
             {{ form.username }}
         </div>
 
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <p class="text-red-600 text-xs mt-1">{{ form.email.errors.0 }}</p>
+            {% else %}
+                <p class="text-gray-400 text-xs mt-1">Only needed the first time — we'll send a verification code to it.</p>
+            {% endif %}
+        </div>
+
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Password</label>
             {{ form.password }}

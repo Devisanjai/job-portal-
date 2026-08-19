@@ -1,3 +1,6 @@
+import razorpay
+import json
+import re
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
@@ -10,13 +13,10 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
-import razorpay
-import json
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-import re
 from pypdf import PdfReader
 from django.shortcuts import get_object_or_404
 from django.conf import settings
@@ -28,17 +28,18 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .models import Notification, SavedJob  
-
+from django.contrib.auth.hashers import make_password
+import random
 from .models import (
     Job, JobApplication, Inquiry, Interview,
     JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock, Profile,
-    Notification, SavedJob,
+    Notification, SavedJob, JobSeekerSignupOTP,
 )
 from .forms import (
     SignUpForm, EmployerLoginForm, JobSeekerLoginForm, JobPostForm,
     JobApplicationForm, EmployerAddCandidateForm, InterviewForm, JobSeekerProfileForm,
+    OTPVerifyForm,
 )
-
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 SERVICES_DATA = {
@@ -73,7 +74,6 @@ def service_detail(request, slug):
     service = SERVICES_DATA.get(slug)
     return render(request, 'core/service_detail.html', {'service': service, 'slug': slug})
 
-
 def home(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
@@ -95,7 +95,6 @@ def home(request):
             JobApplication.objects.filter(job_seeker_profile=request.user.jobseeker_profile)
             .values_list('job_id', flat=True)
         )
-
     return render(request, 'core/home.html', {
         'jobs': jobs,
         'query': query,
@@ -286,61 +285,76 @@ def my_applications(request):
     return render(request, 'core/my_applications.html', {'applications': applications})
 
 
+def _generate_otp():
+    return f"{random.randint(0, 999999):06d}"
+
+
+def _send_signup_otp_email(pending):
+    """Emails the OTP for a pending job-seeker signup. Returns True on success."""
+    try:
+        send_mail(
+            subject='Your Deploynix verification code',
+            message=(
+                f"Hi {pending.username},\n\n"
+                f"Your one-time verification code is: {pending.otp_code}\n\n"
+                "Enter this code to finish creating your Deploynix account. "
+                "This code expires in 10 minutes.\n\n"
+                "If you didn't try to create a Deploynix account, you can ignore this email.\n\n"
+                "Best,\nTeam Deploynix"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[pending.email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print("OTP EMAIL ERROR:", e)
+        return False
+
+
 def job_seeker_login(request):
     next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
         form = JobSeekerLoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username'].strip()
+            email = form.cleaned_data.get('email', '').strip()
             password = form.cleaned_data['password']
 
             user_obj = User.objects.filter(username__iexact=username).first()
 
             if user_obj is None:
-                # No account yet — create one automatically
-                user_obj = User.objects.create_user(
-                    username=username,
-                    email=username if '@' in username else '',
-                    password=password,
-                )
-                JobSeekerProfile.objects.create(
-                    user=user_obj,
-                    full_name=username,
-                    phone='',
-                )
-
-                user = authenticate(request, username=username, password=password)
-                login(request, user)
-
-                if user_obj.email:
-                    try:
-                        send_mail(
-                            subject='Welcome to Deploynix!',
-                            message=(
-                                f"Hi {username},\n\n"
-                                "Welcome to Deploynix — your account has been created successfully.\n"
-                                "Complete your profile to start applying for jobs and internships.\n\n"
-                                "Best,\nTeam Deploynix"
-                            ),
-                            from_email=None,
-                            recipient_list=[user_obj.email],
-                            fail_silently=True,
-                        )
-                    except Exception as e:
-                        print("EMAIL ERROR:", e)
-
-                    send_verification_email(request, user_obj)
-
-                messages.info(request, 'Account created. Please complete your profile.')
-                return redirect('create_profile')
-
-            # Existing account — verify password
-            user = authenticate(request, username=user_obj.username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect(next_url)
+                if not email:
+                    form.add_error('email', 'Email is required the first time you log in, so we can verify it.')
+                elif User.objects.filter(email__iexact=email).exists():
+                    form.add_error('email', 'An account with this email already exists. Try logging in instead.')
+                else:
+                    otp_code = _generate_otp()
+                    pending, _created = JobSeekerSignupOTP.objects.update_or_create(
+                        username=username,
+                        defaults={
+                            'email': email,
+                            'password_hash': make_password(password),
+                            'otp_code': otp_code,
+                            'attempts': 0,
+                            'expires_at': timezone.now() + timedelta(minutes=10),
+                        }
+                    )
+                    if _send_signup_otp_email(pending):
+                        request.session['pending_signup_username'] = username
+                        request.session['pending_signup_next'] = 'create_profile'
+                        messages.info(request, f'We sent a 6-digit verification code to {email}. Enter it below to finish creating your account.')
+                        return redirect('verify_signup_otp')
+                    else:
+                        pending.delete()
+                        messages.error(request, 'Could not send the verification email right now. Please try again in a moment.')
             else:
-                messages.error(request, 'Incorrect password. If this is a new account, use a different username.')
+                user = authenticate(request, username=user_obj.username, password=password)
+                if user is not None:
+                    login(request, user)
+                    return redirect(next_url)
+                else:
+                    messages.error(request, 'Incorrect password. If this is a new account, use a different username.')
     else:
         storage = get_messages(request)
         for _ in storage:
@@ -348,6 +362,115 @@ def job_seeker_login(request):
         form = JobSeekerLoginForm()
 
     return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
+
+
+def verify_signup_otp(request):
+    username = request.session.get('pending_signup_username')
+    pending = JobSeekerSignupOTP.objects.filter(username=username).first() if username else None
+
+    if pending is None:
+        messages.error(request, 'No pending signup found. Please log in again to get a new code.')
+        return redirect('job_seeker_login')
+
+    next_url = request.session.get('pending_signup_next') or 'create_profile'
+
+    if request.method == 'POST':
+        form = OTPVerifyForm(request.POST)
+        if form.is_valid():
+            entered_code = form.cleaned_data['otp_code']
+
+            if pending.is_expired():
+                pending.delete()
+                request.session.pop('pending_signup_username', None)
+                request.session.pop('pending_signup_next', None)
+                messages.error(request, 'That code expired. Please log in again to get a new one.')
+                return redirect('job_seeker_login')
+
+            if pending.attempts >= 5:
+                pending.delete()
+                request.session.pop('pending_signup_username', None)
+                request.session.pop('pending_signup_next', None)
+                messages.error(request, 'Too many incorrect attempts. Please log in again to get a new code.')
+                return redirect('job_seeker_login')
+
+            if entered_code == pending.otp_code:
+                if User.objects.filter(username__iexact=pending.username).exists():
+                    pending.delete()
+                    request.session.pop('pending_signup_username', None)
+                    request.session.pop('pending_signup_next', None)
+                    messages.info(request, 'That account already exists. Please log in.')
+                    return redirect('job_seeker_login')
+
+                user_obj = User(username=pending.username, email=pending.email)
+                user_obj.password = pending.password_hash
+                user_obj.save()
+
+                JobSeekerProfile.objects.create(
+                    user=user_obj,
+                    full_name=pending.username,
+                    phone='',
+                    is_email_verified=True,
+                )
+
+                user_obj.backend = 'django.contrib.auth.backends.ModelBackend'
+                login(request, user_obj)
+
+                pending.delete()
+                request.session.pop('pending_signup_username', None)
+                request.session.pop('pending_signup_next', None)
+
+                try:
+                    send_mail(
+                        subject='Welcome to Deploynix!',
+                        message=(
+                            f"Hi {user_obj.username},\n\n"
+                            "Your email is verified and your Deploynix account is ready.\n"
+                            "Complete your profile to start applying for jobs and internships.\n\n"
+                            "Best,\nTeam Deploynix"
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user_obj.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print("EMAIL ERROR:", e)
+
+                messages.success(request, 'Email verified! Your account has been created.')
+                return redirect(next_url)
+            else:
+                pending.attempts += 1
+                pending.save(update_fields=['attempts'])
+                remaining = max(0, 5 - pending.attempts)
+                messages.error(request, f'Incorrect code. {remaining} attempt(s) left before you\'ll need a new code.')
+    else:
+        form = OTPVerifyForm()
+
+    return render(request, 'core/verify_signup_otp.html', {
+        'form': form,
+        'email': pending.email,
+        'username': pending.username,
+    })
+
+
+def resend_signup_otp(request):
+    username = request.session.get('pending_signup_username')
+    pending = JobSeekerSignupOTP.objects.filter(username=username).first() if username else None
+
+    if pending is None:
+        messages.error(request, 'No pending signup found. Please log in again to get a new code.')
+        return redirect('job_seeker_login')
+
+    pending.otp_code = _generate_otp()
+    pending.attempts = 0
+    pending.expires_at = timezone.now() + timedelta(minutes=10)
+    pending.save(update_fields=['otp_code', 'attempts', 'expires_at'])
+
+    if _send_signup_otp_email(pending):
+        messages.info(request, f'A new verification code has been sent to {pending.email}.')
+    else:
+        messages.error(request, 'Could not send the verification email right now. Please try again in a moment.')
+
+    return redirect('verify_signup_otp')
 @login_required(login_url='employer_login')
 def post_job(request):
     if settings.SUBSCRIPTION_ENABLED:
@@ -906,7 +1029,12 @@ def candidate_detail(request, application_id):
         messages.error(request, 'You are not authorized to view that.')
         return redirect('employer_dashboard')
 
+    if not application.is_viewed:
+        application.is_viewed = True
+        application.save(update_fields=['is_viewed'])
+
     return render(request, 'core/candidate_detail.html', {'application': application})
+
 
 def internships(request):
     query = request.GET.get('q', '').strip()

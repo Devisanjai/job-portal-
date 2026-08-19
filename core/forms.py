@@ -170,3 +170,44 @@ class InterviewForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user:
             self.fields['application'].queryset = JobApplication.objects.filter(job__posted_by=user)
+
+class JobSeekerLoginForm(forms.Form):
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+            'placeholder': 'Username'
+        })
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+            'placeholder': 'Email (only needed the first time)'
+        })
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
+            'placeholder': 'Password'
+        })
+    )
+
+
+class OTPVerifyForm(forms.Form):
+    otp_code = forms.CharField(
+        min_length=6,
+        max_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full border-2 border-gray-400 rounded px-4 py-3 text-center text-2xl tracking-[0.5em] font-semibold focus:outline-none focus:ring-2 focus:ring-red-400',
+            'placeholder': '000000',
+            'autocomplete': 'one-time-code',
+            'inputmode': 'numeric',
+            'maxlength': '6',
+        })
+    )
+
+    def clean_otp_code(self):
+        code = self.cleaned_data['otp_code'].strip()
+        if not code.isdigit():
+            raise forms.ValidationError('Enter the 6-digit code exactly as sent to your email.')
+        return code

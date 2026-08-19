@@ -35,35 +35,38 @@ urlpatterns = [
     path('company-profile/', views.company_profile, name='company_profile'),
     path('candidate/<int:application_id>/', views.candidate_detail, name='candidate_detail'),
     path('internships/', views.internships, name='internships'),
-    path('logout/', views.logout_view, name='logout'),
     path('my-applications/', views.my_applications, name='my_applications'),
     path('my-applications/<int:application_id>/delete/', views.delete_application, name='delete_application'),
     path('ats-checker/', views.ats_checker, name='ats_checker'),
     path('delete-account/', views.delete_account, name='delete_account'),
     path('notifications/', views.notifications_list, name='notifications_list'),
-
     path('notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
     path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
     path('saved-jobs/', views.saved_jobs_list, name='saved_jobs_list'),
+
+    # OTP Signup Verification
+    path('verify-signup-otp/', views.verify_signup_otp, name='verify_signup_otp'),
+    path('resend-signup-otp/', views.resend_signup_otp, name='resend_signup_otp'),
+
+    # Password Reset
     path('password-reset/', auth_views.PasswordResetView.as_view(
         template_name='core/password_reset_form.html',
         email_template_name='core/password_reset_email.html',
         subject_template_name='core/password_reset_subject.txt',
         success_url='/password-reset/done/'
     ), name='password_reset'),
-
     path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(
         template_name='core/password_reset_done.html'
     ), name='password_reset_done'),
-
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
         template_name='core/password_reset_confirm.html',
         success_url='/reset/done/'
     ), name='password_reset_confirm'),
-
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='core/password_reset_complete.html'
     ), name='password_reset_complete'),
+
+    # Email Verification Links
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
-path('resend-verification/', views.resend_verification, name='resend_verification'),
+    path('resend-verification/', views.resend_verification, name='resend_verification'),
 ]
