@@ -16,21 +16,56 @@
     {% endif %}
 
     {% for app in applications %}
-    <div class="job-list-card">
-        <div>
-            <div class="job-list-title">{{ app.job.job_title }}</div>
-            <div class="job-list-meta">{{ app.job.location }} · {{ app.job.job_type }}</div>
-            <div class="job-list-meta">Applied on {{ app.applied_at|date:"d M Y" }}</div>
+    <div class="job-list-card" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div class="job-list-title">{{ app.job.job_title }}</div>
+                <div class="job-list-meta">{{ app.job.location }} · {{ app.job.job_type }}</div>
+                <div class="job-list-meta">Applied on {{ app.applied_at|date:"d M Y" }}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
+                <form method="post" action="{% url 'delete_application' app.id %}"
+                      onsubmit="return confirm('Withdraw this application? This cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="dashboard-btn" style="background: #dc2626; padding: 0.4rem 1rem; font-size: 0.8rem;">
+                        Withdraw
+                    </button>
+                </form>
+            </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <span class="candidate-status-badge status-{{ app.status }}">{{ app.get_status_display }}</span>
-            <form method="post" action="{% url 'delete_application' app.id %}"
-                  onsubmit="return confirm('Withdraw this application? This cannot be undone.');">
-                {% csrf_token %}
-                <button type="submit" class="dashboard-btn" style="background: #dc2626; padding: 0.4rem 1rem; font-size: 0.8rem;">
-                    Withdraw
-                </button>
-            </form>
+
+        <!-- Tracking pipeline -->
+        <div style="display: flex; align-items: center; padding: 0.5rem 0;">
+            <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: #16a34a; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.7rem; font-weight: bold;">✓</div>
+                <span style="font-size: 0.7rem; color: #16a34a; font-weight: 600; margin-top: 0.3rem;">Applied</span>
+            </div>
+
+            <div style="flex: 1; height: 2px; background: {% if app.is_viewed %}#16a34a{% else %}#d1d5db{% endif %};"></div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: {% if app.is_viewed %}#16a34a{% else %}#e5e7eb{% endif %}; display: flex; align-items: center; justify-content: center; color: {% if app.is_viewed %}white{% else %}#9ca3af{% endif %}; font-size: 0.7rem; font-weight: bold;">
+                    {% if app.is_viewed %}✓{% else %}2{% endif %}
+                </div>
+                <span style="font-size: 0.7rem; color: {% if app.is_viewed %}#16a34a{% else %}#9ca3af{% endif %}; font-weight: 600; margin-top: 0.3rem;">Viewed</span>
+            </div>
+
+            <div style="flex: 1; height: 2px; background: {% if app.status == 'shortlisted' or app.status == 'hired' %}#16a34a{% elif app.status == 'rejected' %}#dc2626{% else %}#d1d5db{% endif %};"></div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; flex: 1;">
+                <div style="width: 24px; height: 24px; border-radius: 50%;
+                    background: {% if app.status == 'rejected' %}#dc2626{% elif app.status == 'shortlisted' or app.status == 'hired' %}#16a34a{% else %}#e5e7eb{% endif %};
+                    display: flex; align-items: center; justify-content: center;
+                    color: {% if app.status == 'rejected' or app.status == 'shortlisted' or app.status == 'hired' %}white{% else %}#9ca3af{% endif %};
+                    font-size: 0.7rem; font-weight: bold;">
+                    {% if app.status == 'rejected' %}✕{% elif app.status == 'shortlisted' or app.status == 'hired' %}✓{% else %}3{% endif %}
+                </div>
+                <span style="font-size: 0.7rem; font-weight: 600; margin-top: 0.3rem;
+                    color: {% if app.status == 'rejected' %}#dc2626{% elif app.status == 'shortlisted' or app.status == 'hired' %}#16a34a{% else %}#9ca3af{% endif %};">
+                    {% if app.status == 'rejected' %}Rejected{% elif app.status == 'hired' %}Hired{% else %}Shortlisted{% endif %}
+                </span>
+            </div>
         </div>
     </div>
     {% empty %}

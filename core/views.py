@@ -1031,7 +1031,7 @@ def candidate_detail(request, application_id):
 
     if not application.is_viewed:
         application.is_viewed = True
-        application.save(update_fields=['is_viewed'])
+        application.save()
 
     return render(request, 'core/candidate_detail.html', {'application': application})
 
