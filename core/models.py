@@ -52,6 +52,7 @@ class Job(models.Model):
         ('part-time', 'Part-time'),
         ('internship', 'Internship'),
         ('remote', 'Remote'),
+        ('Walk-in', 'Walk-in'),
     ]
 
     posted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posted_jobs')
@@ -65,6 +66,7 @@ class Job(models.Model):
     salary_range = models.CharField(max_length=100, blank=True)
     skills_required = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
     posted_at = models.DateTimeField(auto_now_add=True)
+    views_count = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.job_title

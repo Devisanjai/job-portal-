@@ -1,0 +1,40 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Post a Job - Deploynix{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.5rem; margin: 0;">What kind of opening are you posting?</h3>
+        <a href="{% url 'employer_dashboard' %}" class="dashboard-btn">← Back</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for cat in categories %}
+        <a href="{% url 'post_job' cat.job_type %}"
+           class="bg-white rounded-2xl shadow-sm border-2 border-gray-400 p-6 hover:shadow-md hover:-translate-y-1 transition duration-200 block no-underline text-inherit">
+            <div class="text-3xl mb-3">{{ cat.icon }}</div>
+            <h4 class="text-lg font-bold text-gray-900 mb-4">{{ cat.label }}</h4>
+
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-700">Jobs Posted</span>
+                    <span class="font-bold text-gray-900">{{ cat.jobs_count }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-700">Total Views</span>
+                    <span class="font-bold text-gray-900">{{ cat.views_total }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-700">Applications</span>
+                    <span class="font-bold text-gray-900">{{ cat.applications_total }}</span>
+                </div>
+            </div>
+
+            <div class="mt-5 text-red-600 font-semibold text-sm">Post {{ cat.label }} Job →</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

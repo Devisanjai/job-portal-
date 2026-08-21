@@ -29,6 +29,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from .models import Notification, SavedJob  
 from django.contrib.auth.hashers import make_password
+from django.db.models import F
+from django.db.models import Sum
 import random
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -471,16 +473,56 @@ def resend_signup_otp(request):
         messages.error(request, 'Could not send the verification email right now. Please try again in a moment.')
 
     return redirect('verify_signup_otp')
+
+
+JOB_TYPE_CATEGORIES = [
+    ('full-time', 'Full-Time', '💼'),
+    ('internship', 'Internship', '🎓'),
+    ('walk-in', 'Walk-in', '🚶'),
+]
+
 @login_required(login_url='employer_login')
-def post_job(request):
+def post_job_select(request):
     if settings.SUBSCRIPTION_ENABLED:
         subscription = getattr(request.user, 'subscription', None)
+        if not subscription or not subscription.can_post_job():
+            messages.warning(request, "You've reached your job posting limit for this plan. Upgrade to post more jobs.")
+            return redirect('subscription_plans')
 
+    categories = []
+    for job_type, label, icon in JOB_TYPE_CATEGORIES:
+        jobs_qs = Job.objects.filter(posted_by=request.user, job_type=job_type)
+        jobs_count = jobs_qs.count()
+        views_total = jobs_qs.aggregate(total=Sum('views_count'))['total'] or 0
+        applications_total = JobApplication.objects.filter(
+            job__posted_by=request.user, job__job_type=job_type
+        ).count()
+
+        categories.append({
+            'job_type': job_type,
+            'label': label,
+            'icon': icon,
+            'jobs_count': jobs_count,
+            'views_total': views_total,
+            'applications_total': applications_total,
+        })
+
+    return render(request, 'core/post_job_select.html', {'categories': categories})
+
+
+@login_required(login_url='employer_login')
+def post_job(request, job_type):
+    valid_types = dict((jt, label) for jt, label, icon in JOB_TYPE_CATEGORIES)
+    if job_type not in valid_types:
+        messages.error(request, 'Invalid job category.')
+        return redirect('post_job_select')
+
+    if settings.SUBSCRIPTION_ENABLED:
+        subscription = getattr(request.user, 'subscription', None)
         if not subscription or not subscription.can_post_job():
             storage = get_messages(request)
             for _ in storage:
                 pass
-
             messages.warning(request, "You've reached your job posting limit for this plan. Upgrade to post more jobs.")
             return redirect('subscription_plans')
 
@@ -489,18 +531,25 @@ def post_job(request):
         if form.is_valid():
             job = form.save(commit=False)
             job.posted_by = request.user
+            job.job_type = job_type
             job.save()
             return redirect('job_detail', job_id=job.id)
     else:
-        form = JobPostForm()
+        form = JobPostForm(initial={'job_type': job_type})
 
-    return render(request, 'core/post_job.html', {'form': form})
-
-
+    return render(request, 'core/post_job.html', {
+        'form': form,
+        'job_type': job_type,
+        'job_type_label': valid_types[job_type],
+    })
 def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
     is_owner = request.user.is_authenticated and request.user == job.posted_by
     base_template = 'core/dashboard_base.html' if is_owner else 'core/base.html'
+
+    if not is_owner:
+        Job.objects.filter(id=job.id).update(views_count=F('views_count') + 1)
+        job.refresh_from_db(fields=['views_count'])
 
     is_saved = False
     if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
@@ -1218,3 +1267,27 @@ def saved_jobs_list(request):
     saved = SavedJob.objects.filter(user=request.user).select_related('job')
     return render(request, 'core/saved_jobs.html', {'saved': saved})
 
+def walkin_jobs(request):
+    query = request.GET.get('q', '').strip()
+    location = request.GET.get('location', '').strip()
+
+    jobs = Job.objects.filter(job_type='walk-in').order_by('-posted_at')
+
+    if query:
+        jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    applied_job_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        applied_job_ids = set(
+            JobApplication.objects.filter(job_seeker_profile=request.user.jobseeker_profile)
+            .values_list('job_id', flat=True)
+        )
+
+    return render(request, 'core/walkin_jobs.html', {
+        'jobs': jobs,
+        'query': query,
+        'location': location,
+        'applied_job_ids': applied_job_ids,
+    })

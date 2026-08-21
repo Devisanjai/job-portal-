@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Walk-in Jobs - Deploynix{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto my-12 px-4">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Explore Walk-in Jobs</h1>
+        <p class="text-gray-600">Find walk-in interview opportunities near you</p>
+    </div>
+    <!-- Search & Filter Form -->
+    <form method="get" action="{% url 'walkin_jobs' %}" class="bg-white p-4 border border-gray-300 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row gap-4">
+        <input type="text" name="q" value="{{ query }}" placeholder="Job title or skills" class="flex-1 border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-red-500">
+        <input type="text" name="location" value="{{ location }}" placeholder="Location / City" class="flex-1 border border-gray-300 rounded px-4 py-3 focus:outline-none focus:border-red-500">
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-3 rounded">
+            Filter Walk-in Jobs
+        </button>
+    </form>
+    <!-- Walk-in Jobs List -->
+    <div>
+        <h2 class="text-2xl font-bold mb-6 text-gray-800">
+            {% if query or location %}Matching Walk-in Jobs{% else %}All Available Walk-in Jobs{% endif %}
+        </h2>
+        {% if jobs %}
+            <div class="space-y-4">
+                {% for job in jobs %}
+                <a href="{% url 'job_detail' job.id %}" class="block bg-white border border-gray-200 hover:border-red-500 rounded-lg p-6 shadow-sm hover:shadow transition duration-200">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-0.5 hover:text-red-600">{{ job.job_title }}</h3>
+                            {% if job.company_name %}
+                                <p class="text-sm font-semibold text-red-600 mb-1.5">🏢 {{ job.company_name }}</p>
+                            {% endif %}
+                            <div class="text-sm text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                                <span>📍 {{ job.location }}</span>
+                                <span>💼 {{ job.get_job_type_display }}</span>
+                                <span>🎓 {{ job.get_experience_required_display }}</span>
+                                <span>📅 Posted {{ job.posted_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="bg-red-50 text-red-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-red-100">
+                                {{ job.number_of_openings }} opening{{ job.number_of_openings|pluralize }}
+                            </span>
+                            {% if job.id in applied_job_ids %}
+                                <span class="bg-green-50 text-green-700 text-sm font-semibold px-4 py-2 rounded border border-green-200">
+                                    ✓ Applied
+                                </span>
+                            {% else %}
+                                <span class="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded hover:bg-red-700">
+                                    View & Apply →
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
+                <p class="text-lg text-gray-600">No walk-in jobs found{% if query or location %} matching your search criteria{% endif %}.</p>
+                {% if query or location %}
+                    <a href="{% url 'walkin_jobs' %}" class="inline-block mt-4 text-red-600 font-semibold hover:underline">
+                        ← View all walk-in jobs
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

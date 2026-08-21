@@ -27,7 +27,7 @@
         </a>
         <div class="bg-red-50 border border-red-200 rounded-lg px-6 py-3 text-center">
             <p class="text-sm text-red-900 font-medium mb-2">Access millions of verified resumes and post your job for free today!</p>
-            <a href="{% url 'post_job' %}" class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2 rounded">Post New Job 💼</a>
+            <a href="{% url 'post_job_select' %}" class="inline-block bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2 rounded">Post New Job 💼</a>
         </div>
     </div>
 
@@ -63,10 +63,10 @@
     <!-- Quick Actions -->
   <h2 class="text-xs font-bold uppercase tracking-widest text-gray-700 mb-3">Quick Actions</h2>
     <div class="dashboard-quick-actions-row mb-10">
-        <a href="{% url 'post_job' %}" class="dashboard-quick-action">
-            <span class="job-category-icon icon-purple">💼</span>
-            <span class="font-semibold text-sm text-gray-900">Post New Job</span>
-        </a>
+        <a href="{% url 'post_job_select' %}" class="dashboard-quick-action">
+    <span class="job-category-icon icon-purple">💼</span>
+    <span class="font-semibold text-sm text-gray-900">Post New Job</span>
+</a>
 
         <a href="{% url 'search_resume' %}" class="dashboard-quick-action">
             <span class="job-category-icon icon-green">🔍</span>

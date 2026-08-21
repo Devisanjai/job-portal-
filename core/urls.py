@@ -11,7 +11,8 @@ urlpatterns = [
     path('job-seekers/', views.job_seeker_options, name='job_seeker_options'),
     path('job-seeker-login/', views.job_seeker_login, name='job_seeker_login'),
     path('services/<slug:slug>/', views.service_detail, name='service_detail'),
-    path('post-job/', views.post_job, name='post_job'),
+    path('post-job/', views.post_job_select, name='post_job_select'),
+    path('post-job/<str:job_type>/', views.post_job, name='post_job'),
     path('job/<int:job_id>/', views.job_detail, name='job_detail'),
     path('jobs/', views.jobs_list, name='jobs_list'),
     path('job/<int:job_id>/apply/', views.apply_job, name='apply_job'),
@@ -43,6 +44,7 @@ urlpatterns = [
     path('notifications/unread-count/', views.unread_notification_count, name='unread_notification_count'),
     path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
     path('saved-jobs/', views.saved_jobs_list, name='saved_jobs_list'),
+    path('walk-in-jobs/', views.walkin_jobs, name='walkin_jobs'),
 
     # OTP Signup Verification
     path('verify-signup-otp/', views.verify_signup_otp, name='verify_signup_otp'),

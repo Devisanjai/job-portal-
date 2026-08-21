@@ -8,7 +8,7 @@
 <div class="dashboard-wrap">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.5rem; margin: 0;">My Posted Jobs</h3>
-        <a href="{% url 'post_job' %}" class="dashboard-btn">+ Post New Job</a>
+        <a href="{% url 'post_job_select' %}" class="dashboard-btn">+ Post New Job</a>
     </div>
 
     {% if jobs %}
@@ -33,8 +33,7 @@
     {% else %}
     <div class="jobs-empty">
         <p>You haven't posted any jobs yet.</p>
-        <a href="{% url 'post_job' %}" class="dashboard-btn" style="margin-top: 1rem; display: inline-block;">Post Your
-            First Job</a>
+        <a href="{% url 'post_job_select' %}" class="dashboard-btn" style="margin-top: 1rem; display: inline-block;">Post Your ...</a>
     </div>
     {% endif %}
 </div>
