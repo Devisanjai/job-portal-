@@ -1,0 +1,74 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Jobs{% endblock %}
+{% block panel_content %}
+
+<div class="mb-4 flex gap-3 text-sm">
+    <a href="{% url 'admin_jobs_list' %}" class="{% if not status %}font-bold underline{% endif %}">All</a>
+    <a href="?status=approved" class="{% if status == 'approved' %}font-bold underline{% endif %}">Approved</a>
+    <a href="?status=pending" class="{% if status == 'pending' %}font-bold underline{% endif %}">Pending</a>
+    <a href="?status=rejected" class="{% if status == 'rejected' %}font-bold underline{% endif %}">Rejected</a>
+</div>
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Title</th>
+                <th>Posted By</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Posted</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in page_obj %}
+            <tr class="border-b">
+                <td class="py-2">{{ job.job_title }}</td>
+                <td>{{ job.posted_by.username }}</td>
+                <td>{{ job.location }}</td>
+                <td>{{ job.get_job_type_display }}</td>
+                <td>
+                    {% if job.approval_status == 'approved' %}
+                        <span class="text-green-700 font-medium">Approved</span>
+                    {% elif job.approval_status == 'rejected' %}
+                        <span class="text-red-700 font-medium">Rejected</span>
+                    {% else %}
+                        <span class="text-amber-600 font-medium">Pending</span>
+                    {% endif %}
+                </td>
+                <td>{{ job.posted_at|date:"d M Y" }}</td>
+                <td class="flex gap-2 py-2">
+                    {% if job.approval_status != 'approved' %}
+                    <form method="post" action="{% url 'admin_job_set_status' job.id 'approved' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="underline text-green-700">Approve</button>
+                    </form>
+                    {% endif %}
+                    {% if job.approval_status != 'rejected' %}
+                    <form method="post" action="{% url 'admin_job_set_status' job.id 'rejected' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="underline text-red-700">Reject</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'admin_job_delete' job.id %}" onsubmit="return confirm('Delete this job posting?');">
+                        {% csrf_token %}
+                        <button type="submit" class="underline text-gray-700">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="py-6 text-center text-gray-500">No jobs found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}">Next</a>{% endif %}
+    </div>
+</div>
+
+{% endblock %}

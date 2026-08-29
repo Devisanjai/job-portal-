@@ -1,0 +1,83 @@
+{% extends 'core/dashboard_base.html' %}
+{% block title %}Settings - Deploynix{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-6">
+
+    <div class="border-2 border-gray-800 rounded-lg p-6">
+        <h3 class="font-bold mb-3">Account</h3>
+        <hr class="mb-4">
+        <form method="post">
+            {% csrf_token %}
+            <label class="block text-sm font-medium mb-1">Username</label>
+            <input type="text" value="{{ request.user.username }}" disabled
+                   class="w-full border rounded px-3 py-2 mb-4 bg-gray-100 text-gray-500">
+
+            <label class="block text-sm font-medium mb-1">Email</label>
+            <input type="email" name="email" value="{{ request.user.email }}"
+                   class="w-full border rounded px-3 py-2 mb-4">
+
+            <button type="submit" name="save_account"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold">
+                Save Account Details
+            </button>
+        </form>
+    </div>
+
+    <div class="border-2 border-gray-800 rounded-lg p-6">
+        <h3 class="font-bold mb-3">Company Profile</h3>
+        <hr class="mb-4">
+        <p class="font-semibold">{{ profile.company_name|default:"Company name not set" }}</p>
+        <p class="text-sm text-gray-700 mb-4">
+            {{ profile.industry|default:"Industry not set" }} · {{ profile.city|default:"City not set" }}
+        </p>
+        <a href="{% url 'company_profile' %}"
+           class="inline-block bg-black text-white px-4 py-2 rounded font-semibold text-sm">
+            Edit Company Profile
+        </a>
+    </div>
+
+    <div class="border-2 border-gray-800 rounded-lg p-6">
+        <h3 class="font-bold mb-3">Subscription</h3>
+        <hr class="mb-4">
+        {% if subscription %}
+            <p class="text-sm">Plan: <strong>{{ subscription.plan.name }}</strong></p>
+            <p class="text-sm text-gray-700 mb-4">Expires: {{ subscription.expires_at|date:"d M Y" }}</p>
+        {% else %}
+            <p class="text-gray-700 mb-4">No active subscription.</p>
+        {% endif %}
+        <a href="{% url 'subscription_plans' %}"
+           class="inline-block bg-black text-white px-4 py-2 rounded font-semibold text-sm">
+            Manage Subscription
+        </a>
+    </div>
+
+    <div class="border-2 border-gray-800 rounded-lg p-6">
+        <h3 class="font-bold mb-3">Change Password</h3>
+        <hr class="mb-4">
+        <form method="post">
+            {% csrf_token %}
+            <label class="block text-sm font-medium mb-1">Old password</label>
+            <input type="password" name="old_password" class="w-full border rounded px-3 py-2 mb-4">
+
+            <label class="block text-sm font-medium mb-1">New password</label>
+            <input type="password" name="new_password1" class="w-full border rounded px-3 py-2 mb-2">
+            <p class="text-xs text-gray-500 mb-4">
+                Your password can't be too similar to your other personal information.<br>
+                Your password must contain at least 8 characters.<br>
+                Your password can't be a commonly used password.<br>
+                Your password can't be entirely numeric.
+            </p>
+
+            <label class="block text-sm font-medium mb-1">New password confirmation</label>
+            <input type="password" name="new_password2" class="w-full border rounded px-3 py-2 mb-1">
+            <p class="text-xs text-gray-700 mb-4">Enter the same password as before, for verification.</p>
+
+            <button type="submit" name="change_password"
+                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold">
+                Change Password
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

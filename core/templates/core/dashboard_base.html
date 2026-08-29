@@ -1,15 +1,18 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Deploynix{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{% static 'core/css/style.css' %}?v=8">
 </head>
+
 <body style="padding-top: 0;">
 
     <div class="dashboard-topbar">
@@ -17,15 +20,19 @@
             <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-10">
         </a>
         <span style="display: flex; align-items: center; gap: 1rem;">
-            <a href="{% url 'notifications_list' %}" style="position: relative; display: inline-flex; align-items: center; color: inherit;" title="Notifications">
+            <a href="{% url 'notifications_list' %}"
+                style="position: relative; display: inline-flex; align-items: center; color: inherit;"
+                title="Notifications">
                 🔔
-                <span id="notif-badge" style="display: none; position: absolute; top: -6px; right: -8px; background: #dc2626; color: white; font-size: 0.65rem; font-weight: bold; min-width: 16px; height: 16px; border-radius: 9999px; align-items: center; justify-content: center; padding: 0 3px;"></span>
+                <span id="notif-badge"
+                    style="display: none; position: absolute; top: -6px; right: -8px; background: #dc2626; color: white; font-size: 0.65rem; font-weight: bold; min-width: 16px; height: 16px; border-radius: 9999px; align-items: center; justify-content: center; padding: 0 3px;"></span>
             </a>
             Welcome, {{ request.user.profile.company_name|default:request.user.username }}
-            <a href="{% url 'logout' %}" style="font-size: 0.85rem; color: inherit; text-decoration: underline; opacity: 0.85;">Logout</a>
+            <a href="{% url 'logout' %}"
+                style="font-size: 0.85rem; color: inherit; text-decoration: underline; opacity: 0.85;">Logout</a>
         </span>
     </div>
-
+    {% block subnav %}
     <div class="dashboard-subnav">
         <a href="{% url 'employer_dashboard' %}">Dashboard</a>
         <a href="{% url 'jobs_list' %}">Jobs</a>
@@ -39,42 +46,45 @@
             </div>
         </div>
         <a href="{% url 'inquiries' %}">Inquiries</a>
-        <a href="#">Settings</a>
-        <a href="#">Reports</a>
+        <a href="{% url 'employer_settings' %}">Settings</a>
+        <a href="{% url 'employer_reports' %}">Reports</a>
     </div>
-{% if messages %}
-  <div class="container mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
+    {% endblock %}
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% block content %}
     {% endblock %}
 
     <script>
-    function updateNotifBadge() {
-        fetch("{% url 'unread_notification_count' %}")
-            .then(res => res.json())
-            .then(data => {
-                const badge = document.getElementById('notif-badge');
-                if (badge) {
-                    if (data.count > 0) {
-                        badge.textContent = data.count > 9 ? '9+' : data.count;
-                        badge.style.display = 'flex';
-                    } else {
-                        badge.style.display = 'none';
+        function updateNotifBadge() {
+            fetch("{% url 'unread_notification_count' %}")
+                .then(res => res.json())
+                .then(data => {
+                    const badge = document.getElementById('notif-badge');
+                    if (badge) {
+                        if (data.count > 0) {
+                            badge.textContent = data.count > 9 ? '9+' : data.count;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
                     }
-                }
-            })
-            .catch(() => {});
-    }
-    updateNotifBadge();
-    setInterval(updateNotifBadge, 30000);
+                })
+                .catch(() => { });
+        }
+        updateNotifBadge();
+        setInterval(updateNotifBadge, 30000);
     </script>
 
 </body>
+
 </html>

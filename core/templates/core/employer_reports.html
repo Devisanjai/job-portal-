@@ -1,0 +1,91 @@
+{% extends 'core/dashboard_base.html' %}
+{% block title %}Reports - Deploynix{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-sm font-semibold tracking-widest text-gray-500 mb-4">REPORTS</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="border-2 border-gray-800 rounded-lg p-5" style="background:#fbe9ee;">
+            <p class="text-3xl font-bold">{{ jobs_posted }}</p>
+            <p class="text-sm text-gray-800">Jobs Posted</p>
+        </div>
+        <div class="border-2 border-gray-800 rounded-lg p-5" style="background:#e8f0fb;">
+            <p class="text-3xl font-bold">{{ total_applications }}</p>
+            <p class="text-sm text-gray-800">Total Applications</p>
+        </div>
+        <div class="border-2 border-gray-800 rounded-lg p-5" style="background:#fbf6e3;">
+            <p class="text-3xl font-bold">{{ total_job_views }}</p>
+            <p class="text-sm text-gray-800">Total Job Views</p>
+        </div>
+        <div class="border-2 border-gray-800 rounded-lg p-5" style="background:#e7f7ec;">
+            <p class="text-3xl font-bold">{{ resumes_unlocked }}</p>
+            <p class="text-sm text-gray-800">Resumes Unlocked</p>
+        </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-6">
+        <div class="border-2 border-gray-800 rounded-lg p-5">
+            <h3 class="font-bold mb-2">Candidate Funnel</h3>
+            <hr class="mb-3">
+            {% if total_applications == 0 %}
+                <p class="text-gray-500 text-sm">No applications yet.</p>
+            {% else %}
+                <ul class="text-sm space-y-1">
+                    {% for stage in candidate_funnel %}
+                    <li class="flex justify-between">
+                        <span>{{ stage.label }}</span>
+                        <span class="font-semibold">{{ stage.count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="border-2 border-gray-800 rounded-lg p-5">
+            <h3 class="font-bold mb-2">Jobs Posted Over Time</h3>
+            <hr class="mb-3">
+            {% if not jobs_over_time %}
+                <p class="text-gray-500 text-sm">No jobs posted yet.</p>
+            {% else %}
+                <ul class="text-sm space-y-1">
+                    {% for row in jobs_over_time %}
+                    <li class="flex justify-between">
+                        <span>{{ row.month|date:"M Y" }}</span>
+                        <span class="font-semibold">{{ row.count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="border-2 border-gray-800 rounded-lg p-5">
+        <h3 class="font-bold mb-2">Job Performance</h3>
+        <hr class="mb-3">
+        {% if not job_performance %}
+            <p class="text-gray-500 text-sm">No jobs posted yet.</p>
+        {% else %}
+            <table class="w-full text-sm border-collapse">
+                <thead>
+                    <tr class="border-b text-left">
+                        <th class="py-2">Job Title</th>
+                        <th>Views</th>
+                        <th>Applications</th>
+                        <th>Posted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in job_performance %}
+                    <tr class="border-b">
+                        <td class="py-2">{{ job.job_title }}</td>
+                        <td>{{ job.views_count }}</td>
+                        <td>{{ job.application_count }}</td>
+                        <td>{{ job.posted_at|date:"d M Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

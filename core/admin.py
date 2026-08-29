@@ -1,7 +1,9 @@
 from django.contrib import admin
+from .models import AdminLoginOTP
 from .models import (
     Profile, Job, JobApplication, JobSeekerProfile, Inquiry, Interview,
     SubscriptionPlan, EmployerSubscription, ResumeUnlock, Notification,
+    SavedJob, JobSeekerSignupOTP,   
 )
 
 
@@ -75,3 +77,22 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ('notification_type', 'is_read')
     search_fields = ('user__username', 'message')
     date_hierarchy = 'created_at'
+
+@admin.register(SavedJob)
+class SavedJobAdmin(admin.ModelAdmin):
+    list_display = ('user', 'job', 'saved_at')
+    search_fields = ('user__username', 'job__job_title')
+    date_hierarchy = 'saved_at'
+
+
+@admin.register(JobSeekerSignupOTP)
+class JobSeekerSignupOTPAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'attempts', 'created_at', 'expires_at')
+    search_fields = ('username', 'email')
+    readonly_fields = ('otp_code', 'password_hash')
+
+
+@admin.register(AdminLoginOTP)
+class AdminLoginOTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'attempts', 'created_at', 'expires_at')
+    readonly_fields = ('otp_code',)

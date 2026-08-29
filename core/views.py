@@ -3,7 +3,7 @@ import json
 import re
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib import messages
 from django.contrib.messages import get_messages
 from django.contrib.auth.decorators import login_required
@@ -31,6 +31,11 @@ from .models import Notification, SavedJob
 from django.contrib.auth.hashers import make_password
 from django.db.models import F
 from django.db.models import Sum
+from django.db.models import Q, Count
+from django.db.models.functions import TruncMonth
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import PasswordChangeForm
+from .models import AdminLoginOTP
 import random
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -82,7 +87,7 @@ def home(request):
 
     searched = bool(query or location)
     if searched:
-        jobs = Job.objects.all().order_by('-posted_at')
+        jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')
         if query:
             jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
         if location:
@@ -109,7 +114,7 @@ def job_vacancies(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
 
-    jobs = Job.objects.all().order_by('-posted_at')
+    jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')
 
     if query:
         jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
@@ -236,8 +241,8 @@ def employer_dashboard(request):
         'applicants_total': applications.count(),
         'applicants_pending': applications.filter(status='applied').count(),
         'interview_list': interviews.count(),
-        'inquiries_total': 93,
-        'inquiries_unread': 93,
+        'inquiries_total': Inquiry.objects.count(),
+        'inquiries_unread': Inquiry.objects.exclude(status__in=['Read', 'Replied', 'Closed']).count(),
         'upcoming_interviews': upcoming_interviews,
         'recent_candidates': recent_candidates,
     }
@@ -564,6 +569,83 @@ def job_detail(request, job_id):
 
 
 @login_required(login_url='employer_login')
+def employer_reports(request):
+    jobs = Job.objects.filter(posted_by=request.user)
+    job_ids = jobs.values_list('id', flat=True)
+    applications = JobApplication.objects.filter(job_id__in=job_ids)
+
+    jobs_posted = jobs.count()
+    total_applications = applications.count()
+    total_job_views = jobs.aggregate(total=Sum('views_count'))['total'] or 0
+    resumes_unlocked = ResumeUnlock.objects.filter(employer=request.user).count()
+
+    funnel_counts = dict(applications.values_list('status').annotate(count=Count('id')))
+    candidate_funnel = [
+        {'label': label, 'count': funnel_counts.get(value, 0)}
+        for value, label in JobApplication.STATUS_CHOICES
+    ]
+
+    six_months_ago = timezone.now() - timedelta(days=180)
+    jobs_over_time = (
+        jobs.filter(posted_at__gte=six_months_ago)
+        .annotate(month=TruncMonth('posted_at'))
+        .values('month')
+        .annotate(count=Count('id'))
+        .order_by('month')
+    )
+
+    job_performance = jobs.annotate(
+        application_count=Count('applications')
+    ).order_by('-posted_at')
+
+    context = {
+        'jobs_posted': jobs_posted,
+        'total_applications': total_applications,
+        'total_job_views': total_job_views,
+        'resumes_unlocked': resumes_unlocked,
+        'candidate_funnel': candidate_funnel,
+        'jobs_over_time': jobs_over_time,
+        'job_performance': job_performance,
+    }
+    return render(request, 'core/employer_reports.html', context)
+
+
+@login_required(login_url='employer_login')
+def employer_settings(request):
+    profile, created = Profile.objects.get_or_create(
+        user=request.user, defaults={'is_employer': True}
+    )
+    subscription = getattr(request.user, 'subscription', None)
+
+    if request.method == 'POST':
+        if 'save_account' in request.POST:
+            new_email = request.POST.get('email', '').strip()
+            if new_email:
+                request.user.email = new_email
+                request.user.save(update_fields=['email'])
+                messages.success(request, "Account details updated.")
+            return redirect('employer_settings')
+
+        elif 'change_password' in request.POST:
+            form = PasswordChangeForm(request.user, request.POST)
+            if form.is_valid():
+                user = form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed successfully.")
+            else:
+                for field_errors in form.errors.values():
+                    for error in field_errors:
+                        messages.error(request, error)
+            return redirect('employer_settings')
+
+    context = {
+        'profile': profile,
+        'subscription': subscription,
+    }
+    return render(request, 'core/employer_settings.html', context)
+
+
+@login_required(login_url='employer_login')
 def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
@@ -673,6 +755,115 @@ def delete_application(request, application_id):
     application.delete()
     messages.success(request, 'Application withdrawn successfully.')
     return redirect('my_applications')
+
+class AdminLoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].widget.attrs.update({
+            'class': 'w-full border rounded px-3 py-2',
+            'placeholder': 'Admin username',
+        })
+        self.fields['password'].widget.attrs.update({
+            'class': 'w-full border rounded px-3 py-2',
+        })
+
+
+def _send_admin_otp_email(user, otp_code):
+    try:
+        send_mail(
+            subject='Your Deploynix admin verification code',
+            message=(
+                f"Hi {user.username},\n\n"
+                f"Your admin sign-in verification code is: {otp_code}\n\n"
+                "This code expires in 10 minutes. If you didn't try to sign in, "
+                "please secure your account immediately.\n\n"
+                "Best,\nTeam Deploynix"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print("ADMIN OTP EMAIL ERROR:", e)
+        return False
+
+
+def admin_login(request):
+    if request.user.is_authenticated and request.user.is_superuser:
+        return redirect('admin_dashboard')
+
+    error = None
+    if request.method == 'POST':
+        form = AdminLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if not user.is_superuser:
+                error = "This login is for site administrators only."
+            elif not user.email:
+                error = "No email is set on this admin account. Contact the developer."
+            else:
+                otp_code = _generate_otp()
+                AdminLoginOTP.objects.filter(user=user).delete()
+                AdminLoginOTP.objects.create(
+                    user=user,
+                    otp_code=otp_code,
+                    expires_at=timezone.now() + timedelta(minutes=10),
+                )
+                if _send_admin_otp_email(user, otp_code):
+                    request.session['pending_admin_user_id'] = user.id
+                    return redirect('admin_verify_otp')
+                else:
+                    error = "Could not send the verification email right now. Please try again."
+        else:
+            error = "Invalid username or password."
+    else:
+        form = AdminLoginForm()
+
+    return render(request, 'core/admin_panel/admin_login.html', {'form': form, 'error': error})
+
+
+def admin_verify_otp(request):
+    user_id = request.session.get('pending_admin_user_id')
+    pending_user = User.objects.filter(id=user_id, is_superuser=True).first() if user_id else None
+
+    if pending_user is None:
+        messages.error(request, 'No pending admin login found. Please sign in again.')
+        return redirect('admin_login')
+
+    otp_record = AdminLoginOTP.objects.filter(user=pending_user).order_by('-created_at').first()
+    error = None
+
+    if request.method == 'POST':
+        entered_code = request.POST.get('otp_code', '').strip()
+
+        if otp_record is None or otp_record.is_expired():
+            if otp_record:
+                otp_record.delete()
+            request.session.pop('pending_admin_user_id', None)
+            messages.error(request, 'That code expired. Please sign in again.')
+            return redirect('admin_login')
+
+        if otp_record.attempts >= 5:
+            otp_record.delete()
+            request.session.pop('pending_admin_user_id', None)
+            messages.error(request, 'Too many incorrect attempts. Please sign in again.')
+            return redirect('admin_login')
+
+        if entered_code == otp_record.otp_code:
+            pending_user.backend = 'django.contrib.auth.backends.ModelBackend'
+            login(request, pending_user)
+            otp_record.delete()
+            request.session.pop('pending_admin_user_id', None)
+            return redirect('admin_dashboard')
+        else:
+            otp_record.attempts += 1
+            otp_record.save(update_fields=['attempts'])
+            remaining = max(0, 5 - otp_record.attempts)
+            error = f"Incorrect code. {remaining} attempt(s) left."
+
+    return render(request, 'core/admin_panel/admin_verify_otp.html', {'error': error})
+
 
 # ---- Candidate list helper ----
 def _candidate_list_context(request, applications, page_title, show_search=False, search_values=None):
@@ -805,11 +996,6 @@ def send_verification_email(request, user):
         )
     except Exception as e:
         print("VERIFICATION EMAIL ERROR:", e)
-
-
-
-
-
 
 
 def verify_email(request, uidb64, token):
@@ -1110,7 +1296,6 @@ def internships(request):
         'applied_job_ids': applied_job_ids,
     })
 
-   
 
 # Common words to ignore when extracting "skills" from a job description
 ATS_STOPWORDS = {
@@ -1291,3 +1476,25 @@ def walkin_jobs(request):
         'location': location,
         'applied_job_ids': applied_job_ids,
     })
+
+
+@login_required(login_url='employer_login')
+def edit_job(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+
+    if job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to edit this job.')
+        return redirect('jobs_list')
+
+    if request.method == 'POST':
+        form = JobPostForm(request.POST, instance=job)
+        if form.is_valid():
+            updated_job = form.save(commit=False)
+            updated_job.approval_status = 'pending'
+            updated_job.save()
+            messages.success(request, 'Job updated. It will be re-reviewed by our admin team before it goes live again.')
+            return redirect('jobs_list')
+    else:
+        form = JobPostForm(instance=job)
+
+    return render(request, 'core/edit_job.html', {'form': form, 'job': job})

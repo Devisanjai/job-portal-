@@ -1,0 +1,24 @@
+{% extends 'core/dashboard_base.html' %}
+{% block title %}Edit Job - Deploynix{% endblock %}
+{% block content %}
+
+<div class="dashboard-wrap max-w-2xl">
+    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Edit Job: {{ job.job_title }}</h3>
+
+    <div class="bg-amber-50 text-amber-700 border border-amber-200 text-sm p-3 rounded mb-4">
+        Editing this job will send it back for admin approval before it's visible to job seekers again.
+    </div>
+
+    <form method="post" class="bg-white border-2 border-gray-800 rounded-lg p-8">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded font-semibold mt-4">
+            Save Changes
+        </button>
+    </form>
+
+    <a href="{% url 'jobs_list' %}" class="inline-block mt-4 text-sm text-red-600 hover:underline">← Back to My Jobs</a>
+</div>
+
+{% endblock %}

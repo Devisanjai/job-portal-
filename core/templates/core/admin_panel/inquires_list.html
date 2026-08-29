@@ -1,0 +1,49 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Inquiries{% endblock %}
+{% block panel_content %}
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Name</th>
+                <th>Email</th>
+                <th>Subject</th>
+                <th>Message</th>
+                <th>Status</th>
+                <th>Received</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inquiry in page_obj %}
+            <tr class="border-b align-top">
+                <td class="py-2">{{ inquiry.name }}</td>
+                <td>{{ inquiry.email }}</td>
+                <td>{{ inquiry.subject }}</td>
+                <td class="max-w-xs">{{ inquiry.message|truncatewords:15 }}</td>
+                <td>
+                    <form method="post" action="{% url 'admin_inquiry_update_status' inquiry.id %}">
+                        {% csrf_token %}
+                        <select name="status" onchange="this.form.submit()" class="border rounded px-1 py-0.5 text-xs">
+                            {% for value, label in inquiry.STATUS_CHOICES %}
+                                <option value="{{ value }}" {% if inquiry.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>{{ inquiry.created_at|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="py-6 text-center text-gray-500">No inquiries found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </div>
+</div>
+
+{% endblock %}

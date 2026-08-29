@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Control Panel - Deploynix{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Playfair Display', 'Georgia', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Isolate admin styles completely from global website CSS */
+        html, body {
+            margin: 0 !important;
+            padding-top: 0 !important;
+            font-family: 'Playfair Display', Georgia, serif !important;
+            background-color: #f8fafc !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-64 bg-black text-gray-200 flex flex-col shrink-0 min-h-screen sticky top-0 h-screen border-r border-gray-800 z-40">
+
+        <!-- Logo & Portal Tag -->
+        <div class="px-6 py-5 border-b border-gray-800/80">
+            <p class="text-[10px] font-bold tracking-widest text-red-500 uppercase mb-1">PROVIDER PORTAL</p>
+            <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-2">
+                <img src="{% static 'core/assets/logo.png' %}" alt="Deploynix Logo" class="h-6 w-auto brightness-200" onerror="this.style.display='none'">
+                <span class="text-lg font-extrabold tracking-tight text-white">Deploynix <span class="text-red-500 font-bold text-sm">Control</span></span>
+            </a>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+            <a href="{% url 'admin_dashboard' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'dashboard' or not active_tab %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">📊</span>
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{% url 'admin_jobs_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'jobs' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">💼</span>
+                <span>Jobs</span>
+            </a>
+
+            <a href="{% url 'admin_users_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'users' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">👥</span>
+                <span>Users</span>
+            </a>
+
+            <a href="{% url 'admin_inquiries_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'inquiries' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">💬</span>
+                <span>Inquiries</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-gray-800/80 space-y-1">
+            <div class="px-3 py-1.5 text-xs text-gray-400">
+                Logged in as: <strong class="text-gray-200 block truncate">{{ request.user.username }}</strong>
+            </div>
+            <a href="{% url 'home' %}" class="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-900 transition-all">
+                <span>🌐</span> Back to website
+            </a>
+            <a href="{% url 'logout' %}" class="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-950/30 transition-all">
+                <span>🚪</span> Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT SHELL -->
+    <div class="flex-1 flex flex-col min-w-0 bg-slate-50">
+
+        <!-- TOP HEADER BAR -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-30 px-8 py-3.5 flex items-center justify-between gap-4">
+            <!-- Search bar -->
+            <div class="flex-1 max-w-md">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        🔍
+                    </span>
+                    <input type="text"
+                           placeholder="Search companies, users, subscriptions, tickets..."
+                           class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all">
+                </div>
+            </div>
+
+            <!-- Profile & System Status -->
+            <div class="flex items-center gap-4 shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> ACTIVE
+                </span>
+
+                <div class="h-5 w-px bg-gray-200"></div>
+
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold text-xs">
+                        {{ request.user.username|slice:":2"|upper }}
+                    </div>
+                    <div class="hidden sm:block text-left">
+                        <div class="text-xs font-bold text-gray-800 leading-none">{{ request.user.username }}</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-0.5">Admin Account</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN VIEW CONTAINER -->
+        <main class="flex-1 p-8 max-w-7xl w-full mx-auto">
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-xl text-sm font-medium flex items-center justify-between {% if message.tags == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-emerald-50 text-emerald-800 border border-emerald-200{% endif %}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block panel_content %}{% endblock %}
+        </main>
+    </div>
+
+</body>
+</html>

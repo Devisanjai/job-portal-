@@ -1,0 +1,65 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Users{% endblock %}
+{% block panel_content %}
+
+<div class="mb-4 flex gap-3 text-sm">
+    <a href="?role=seekers" class="{% if role == 'seekers' %}font-bold underline{% endif %}">Job Seekers</a>
+    <a href="?role=employers" class="{% if role == 'employers' %}font-bold underline{% endif %}">Employers</a>
+</div>
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Name</th>
+                <th>Username</th>
+                <th>Email</th>
+                <th>{% if role == 'employers' %}Industry{% else %}Location{% endif %}</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in page_obj %}
+            <tr class="border-b">
+                {% if role == 'employers' %}
+                    <td class="py-2">{{ item.company_name }}</td>
+                    <td>{{ item.user.username }}</td>
+                    <td>{{ item.user.email }}</td>
+                    <td>{{ item.industry }}</td>
+                {% else %}
+                    <td class="py-2">{{ item.full_name }}</td>
+                    <td>{{ item.user.username }}</td>
+                    <td>{{ item.user.email }}</td>
+                    <td>{{ item.location }}</td>
+                {% endif %}
+                <td>
+                    {% if item.user.is_active %}
+                        <span class="text-green-700">Active</span>
+                    {% else %}
+                        <span class="text-red-700">Banned</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="underline text-blue-700">
+                            {% if item.user.is_active %}Ban{% else %}Unban{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="py-6 text-center text-gray-500">No users found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?role={{ role }}&page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?role={{ role }}&page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </div>
+</div>
+
+{% endblock %}

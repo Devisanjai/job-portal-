@@ -67,7 +67,13 @@ class Job(models.Model):
     skills_required = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
     posted_at = models.DateTimeField(auto_now_add=True)
     views_count = models.PositiveIntegerField(default=0)
-
+    APPROVAL_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    approval_status = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='pending')
+    
     def __str__(self):
         return self.job_title
 
@@ -289,6 +295,8 @@ class SavedJob(models.Model):
     def __str__(self):
         return f"{self.user.username} saved {self.job.job_title}"
 
+    
+
 class JobSeekerSignupOTP(models.Model):
     """
     Holds a job seeker signup in a 'pending' state until the email OTP is
@@ -307,3 +315,21 @@ class JobSeekerSignupOTP(models.Model):
 
     def __str__(self):
         return f"Pending signup: {self.username} ({self.email})"
+
+
+class AdminLoginOTP(models.Model):
+    """
+    Second-factor OTP for the superuser admin login. Created after password
+    verification succeeds; login() only happens after the code is confirmed.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    otp_code = models.CharField(max_length=6)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def __str__(self):
+        return f"Admin OTP for {self.user.username}"

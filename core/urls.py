@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import admin_panel_views
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
@@ -45,6 +46,11 @@ urlpatterns = [
     path('job/<int:job_id>/save/', views.toggle_save_job, name='toggle_save_job'),
     path('saved-jobs/', views.saved_jobs_list, name='saved_jobs_list'),
     path('walk-in-jobs/', views.walkin_jobs, name='walkin_jobs'),
+    path('employer-reports/', views.employer_reports, name='employer_reports'),
+    path('admin-login/', views.admin_login, name='admin_login'),
+    path('admin-verify-otp/', views.admin_verify_otp, name='admin_verify_otp'),
+    path('employer-settings/', views.employer_settings, name='employer_settings'),
+    path('job/<int:job_id>/edit/', views.edit_job, name='edit_job'),
 
     # OTP Signup Verification
     path('verify-signup-otp/', views.verify_signup_otp, name='verify_signup_otp'),
@@ -71,4 +77,14 @@ urlpatterns = [
     # Email Verification Links
     path('verify-email/<uidb64>/<token>/', views.verify_email, name='verify_email'),
     path('resend-verification/', views.resend_verification, name='resend_verification'),
+
+    # Custom Admin Control Panel
+    path('control-panel/', admin_panel_views.admin_dashboard, name='admin_dashboard'),
+    path('control-panel/jobs/', admin_panel_views.admin_jobs_list, name='admin_jobs_list'),
+    path('control-panel/jobs/<int:job_id>/set-status/<str:status>/', admin_panel_views.admin_job_set_status, name='admin_job_set_status'),
+    path('control-panel/jobs/<int:job_id>/delete/', admin_panel_views.admin_job_delete, name='admin_job_delete'),
+    path('control-panel/users/', admin_panel_views.admin_users_list, name='admin_users_list'),
+    path('control-panel/users/<int:user_id>/toggle-active/', admin_panel_views.admin_user_toggle_active, name='admin_user_toggle_active'),
+    path('control-panel/inquiries/', admin_panel_views.admin_inquiries_list, name='admin_inquiries_list'),
+    path('control-panel/inquiries/<int:inquiry_id>/update-status/', admin_panel_views.admin_inquiry_update_status, name='admin_inquiry_update_status'),
 ]
