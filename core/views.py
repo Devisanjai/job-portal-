@@ -69,6 +69,18 @@ SERVICES_DATA = {
         'details': 'Get one-on-one mock interview sessions, feedback from industry experts, and tips on body language, communication, and technical presentation to walk into your interview with confidence.',
     },
 }
+
+def _generate_employer_username(company_name):
+    """Turns a company name into a unique, username-safe slug."""
+    base = re.sub(r'[^a-zA-Z0-9]+', '-', company_name).strip('-').lower()
+    if not base:
+        base = 'employer'
+    username = base
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        counter += 1
+        username = f"{base}-{counter}"
+    return username
 def create_notification(user, message, notification_type='general', link=''):
     Notification.objects.create(
         user=user,
@@ -173,7 +185,7 @@ def employer_login(request):
 
             if user_obj is None:
                 # No account yet — create one automatically
-                username = email  # use email as username to avoid collisions
+                username = _generate_employer_username(company_name)
                 user_obj = User.objects.create_user(
                     username=username,
                     email=email,
