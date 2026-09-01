@@ -15,6 +15,10 @@
                 <th>Username</th>
                 <th>Email</th>
                 <th>{% if role == 'employers' %}Industry{% else %}Location{% endif %}</th>
+                {% if role == 'employers' %}
+                <th>Plan</th>
+                <th>Resumes Viewed</th>
+                {% endif %}
                 <th>Status</th>
                 <th>Action</th>
             </tr>
@@ -27,6 +31,14 @@
                     <td>{{ item.user.username }}</td>
                     <td>{{ item.user.email }}</td>
                     <td>{{ item.industry }}</td>
+                    <td>{{ item.user.subscription.plan.name|default:"—" }}</td>
+                    <td>
+                        {% if item.user.subscription %}
+                            {{ item.user.subscription.resumes_viewed_count }} / {{ item.user.subscription.plan.resume_view_limit }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                 {% else %}
                     <td class="py-2">{{ item.full_name }}</td>
                     <td>{{ item.user.username }}</td>
@@ -50,8 +62,8 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6" class="py-6 text-center text-gray-500">No users found.</td></tr>
-            {% endfor %}
+            <tr><td colspan="8" class="py-6 text-center text-gray-500">No users found.</td></tr>
+            {% endfor %}    
         </tbody>
     </table>
 

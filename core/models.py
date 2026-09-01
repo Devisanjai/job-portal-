@@ -3,13 +3,15 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 def validate_file_size(value):
     max_size_mb = 5
     if value.size > max_size_mb * 1024 * 1024:
         raise ValidationError(f'File size must be under {max_size_mb}MB.')
 
-
+# Profile model for both employers and job seekers -----------------------------------------------------------------------
 class Profile(models.Model):
     COMPANY_SIZE_CHOICES = [
         ('1-10', '1-10 employees'),
@@ -38,6 +40,7 @@ class Profile(models.Model):
     def __str__(self):
         return self.user.username
 
+#Job model ---------------------------------------------------------------------------------------------------------------
 class Job(models.Model):
     EXPERIENCE_CHOICES = [
         ('fresher', 'Fresher'),
@@ -78,7 +81,7 @@ class Job(models.Model):
         return self.job_title
 
 
-
+#JobApplication model ---------------------------------------------------------------------------------------------------------------
 class JobApplication(models.Model):
     STATUS_CHOICES = [
         ('applied', 'New Applicant'),
@@ -114,6 +117,7 @@ class JobApplication(models.Model):
     is_bookmarked = models.BooleanField(default=False)
     applied_at = models.DateTimeField(auto_now_add=True)
     is_viewed = models.BooleanField(default=False)
+    
     def __str__(self):
         return f"{self.display_full_name} - {self.job.job_title}"
 
@@ -146,6 +150,7 @@ class JobApplication(models.Model):
     def display_resume(self):
         return self.job_seeker_profile.resume if self.job_seeker_profile else self.resume
 
+#Inquiry model ---------------------------------------------------------------------------------------------------------------
 class Inquiry(models.Model):
     STATUS_CHOICES = [
         ('Unread', 'Unread'),
@@ -165,7 +170,7 @@ class Inquiry(models.Model):
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
-
+#Interview model ---------------------------------------------------------------------------------------------------------------
 class Interview(models.Model):
     STATUS_CHOICES = [
         ('scheduled', 'Scheduled'),
@@ -184,7 +189,7 @@ class Interview(models.Model):
     def __str__(self):
         return f"Interview: {self.application.full_name} - {self.scheduled_at.strftime('%d/%m/%Y')}"
 
-
+#JobSeekerProfile model ---------------------------------------------------------------------------------------------------------------
 class JobSeekerProfile(models.Model):
     JOB_TYPE_CHOICES = [
         ('full-time', 'Full-time'),
@@ -202,6 +207,7 @@ class JobSeekerProfile(models.Model):
     skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated skills")
     experience = models.CharField(max_length=100, blank=True)
     preferred_job_type = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, blank=True)
+    is_experienced = models.BooleanField(default=False, help_text="False = Fresher, True = Experienced")
     resume = models.FileField(
         upload_to='profile_resumes/',
         blank=True,
@@ -217,17 +223,71 @@ class JobSeekerProfile(models.Model):
     def __str__(self):
         return self.full_name
 
+#VerificationDocument model ---------------------------------------------------------------------------------------------------------------
+class VerificationDocument(models.Model):
+    DOCUMENT_TYPES = [
+        ('10th_marksheet', '10th Marksheet'),
+        ('12th_marksheet', '12th Marksheet'),
+        ('degree_marksheet', 'Degree/College Marksheet'),
+        ('relieving_letter', 'Relieving Letter'),
+        ('payslip', 'Payslip'),
+        ('offer_letter', 'Previous Offer Letter'),
+        ('other', 'Other'),
+    ]
+    job_seeker_profile = models.ForeignKey(
+        JobSeekerProfile, on_delete=models.CASCADE, related_name='verification_documents'
+    )
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES)
+    file = models.FileField(
+        upload_to='verification_docs/',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png']), validate_file_size],
+        help_text="PDF or image, max 5MB"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.job_seeker_profile.full_name} - {self.get_document_type_display()}"
+
+
+#BackgroundVerification model ---------------------------------------------------------------------------------------------------------------
+class BackgroundVerification(models.Model):
+    STATUS_CHOICES = [
+        ('not_requested', 'Not Requested'),
+        ('pending', 'Pending Review'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+        ('flagged', 'Flagged'),
+    ]
+    job_seeker_profile = models.OneToOneField(
+        JobSeekerProfile, on_delete=models.CASCADE, related_name='background_verification'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_requested')
+    has_new_documents = models.BooleanField(default=False)
+    internal_notes = models.TextField(blank=True, help_text="Visible to admin/verification team only")
+    verified_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verifications_done'
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.job_seeker_profile.full_name} - {self.get_status_display()}"
+
+
+#SubscriptionPlan model ---------------------------------------------------------------------------------------------------------------
 class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=50)
     price = models.PositiveIntegerField(help_text="Price in INR")
     duration_days = models.PositiveIntegerField(default=30)
     job_post_limit = models.PositiveIntegerField()
     resume_view_limit = models.PositiveIntegerField(default=0)
+    includes_bgv_access = models.BooleanField(default=False, help_text="Whether this plan lets employers view background verification status")
 
     def __str__(self):
         return self.name
 
-
+#EmployerSubscription model ---------------------------------------------------------------------------------------------------------------
 class EmployerSubscription(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
@@ -250,6 +310,8 @@ class EmployerSubscription(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.plan.name}"
 
+
+#ResumeUnlock model ---------------------------------------------------------------------------------------------------------------
 class ResumeUnlock(models.Model):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='resume_unlocks')
     application = models.ForeignKey(JobApplication, on_delete=models.CASCADE, related_name='unlocked_by')
@@ -262,6 +324,7 @@ class ResumeUnlock(models.Model):
         return f"{self.employer.username} unlocked {self.application_id}"
 
 
+#Notification model ---------------------------------------------------------------------------------------------------------------
 class Notification(models.Model):
     NOTIFICATION_TYPES = [
         ('application_status', 'Application Status Update'),
@@ -283,6 +346,8 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.user.username}: {self.message[:40]}"
 
+
+#SavedJob model ---------------------------------------------------------------------------------------------------------------
 class SavedJob(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_jobs')
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='saved_by')
@@ -297,6 +362,7 @@ class SavedJob(models.Model):
 
     
 
+#JobSeekerSignupOTP model ---------------------------------------------------------------------------------------------------------------
 class JobSeekerSignupOTP(models.Model):
     """
     Holds a job seeker signup in a 'pending' state until the email OTP is
@@ -316,7 +382,7 @@ class JobSeekerSignupOTP(models.Model):
     def __str__(self):
         return f"Pending signup: {self.username} ({self.email})"
 
-
+#AdminLoginOTP model ---------------------------------------------------------------------------------------------------------------
 class AdminLoginOTP(models.Model):
     """
     Second-factor OTP for the superuser admin login. Created after password
@@ -333,3 +399,8 @@ class AdminLoginOTP(models.Model):
 
     def __str__(self):
         return f"Admin OTP for {self.user.username}"
+
+@receiver(post_save, sender=JobSeekerProfile)
+def create_background_verification(sender, instance, created, **kwargs):
+    if created:
+        BackgroundVerification.objects.get_or_create(job_seeker_profile=instance)

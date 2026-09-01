@@ -1,6 +1,7 @@
 import razorpay
 import json
 import re
+from .models import BackgroundVerification, VerificationDocument
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -70,6 +71,7 @@ SERVICES_DATA = {
     },
 }
 
+#Utility function to generate a unique username for employers based on their company name ------------------------------
 def _generate_employer_username(company_name):
     """Turns a company name into a unique, username-safe slug."""
     base = re.sub(r'[^a-zA-Z0-9]+', '-', company_name).strip('-').lower()
@@ -122,6 +124,7 @@ def home(request):
         'applied_job_ids': applied_job_ids,
     })
 
+#Job Vacancies view ---------------------------------------------------------------------------------------------------------
 def job_vacancies(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
@@ -148,6 +151,7 @@ def job_vacancies(request):
         'applied_job_ids': applied_job_ids,
     })
 
+#Signup view ---------------------------------------------------------------------------------------------------------
 def signup(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -172,6 +176,7 @@ def signup(request):
     return render(request, 'core/signup.html', {'form': form})
 from django.views.decorators.cache import never_cache
 
+#Employer Login view ---------------------------------------------------------------------------------------------------------
 @never_cache
 def employer_login(request):
     if request.method == 'POST':
@@ -236,6 +241,8 @@ def employer_login(request):
         form = EmployerLoginForm()
 
     return render(request, 'core/employer_login.html', {'form': form})
+
+#Employer Dashboard view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def employer_dashboard(request):
     jobs = Job.objects.filter(posted_by=request.user)
@@ -260,6 +267,8 @@ def employer_dashboard(request):
     }
     return render(request, 'core/employer_dashboard.html', context)
 
+
+#Company Profile view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def company_profile(request):
     profile, created = Profile.objects.get_or_create(
@@ -293,6 +302,7 @@ def company_profile(request):
     return render(request, 'core/company_profile.html', {'profile': profile})
 
 
+#Job Seeker Options view ---------------------------------------------------------------------------------------------------------
 def job_seeker_options(request):
     return render(request, 'core/job_seeker_options.html')
 
@@ -303,11 +313,11 @@ def my_applications(request):
     ).order_by('-applied_at')
     return render(request, 'core/my_applications.html', {'applications': applications})
 
-
+#OTP Generation and Verification for Job Seeker Signup ---------------------------------------------------------------------------------------------------------
 def _generate_otp():
     return f"{random.randint(0, 999999):06d}"
 
-
+#Send OTP email for job seeker signup ---------------------------------------------------------------------------------------------------------
 def _send_signup_otp_email(pending):
     """Emails the OTP for a pending job-seeker signup. Returns True on success."""
     try:
@@ -330,7 +340,7 @@ def _send_signup_otp_email(pending):
         print("OTP EMAIL ERROR:", e)
         return False
 
-
+#Job Seeker Login view ---------------------------------------------------------------------------------------------------------
 def job_seeker_login(request):
     next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
@@ -382,7 +392,7 @@ def job_seeker_login(request):
 
     return render(request, 'core/job_seeker_login.html', {'form': form, 'next': next_url})
 
-
+#OTP Verification view for Job Seeker Signup ---------------------------------------------------------------------------------------------------------
 def verify_signup_otp(request):
     username = request.session.get('pending_signup_username')
     pending = JobSeekerSignupOTP.objects.filter(username=username).first() if username else None
@@ -470,7 +480,7 @@ def verify_signup_otp(request):
         'username': pending.username,
     })
 
-
+#Resend OTP view for Job Seeker Signup ---------------------------------------------------------------------------------------------------------
 def resend_signup_otp(request):
     username = request.session.get('pending_signup_username')
     pending = JobSeekerSignupOTP.objects.filter(username=username).first() if username else None
@@ -498,6 +508,7 @@ JOB_TYPE_CATEGORIES = [
     ('walk-in', 'Walk-in', '🚶'),
 ]
 
+#Job Posting Selection view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def post_job_select(request):
     if settings.SUBSCRIPTION_ENABLED:
@@ -526,7 +537,7 @@ def post_job_select(request):
 
     return render(request, 'core/post_job_select.html', {'categories': categories})
 
-
+#Job Posting view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def post_job(request, job_type):
     valid_types = dict((jt, label) for jt, label, icon in JOB_TYPE_CATEGORIES)
@@ -559,6 +570,8 @@ def post_job(request, job_type):
         'job_type': job_type,
         'job_type_label': valid_types[job_type],
     })
+
+#Job Detail view ---------------------------------------------------------------------------------------------------------
 def job_detail(request, job_id):
     job = Job.objects.get(id=job_id)
     is_owner = request.user.is_authenticated and request.user == job.posted_by
@@ -579,7 +592,7 @@ def job_detail(request, job_id):
         'is_saved': is_saved,
     })
 
-
+#Employer Dashboard view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def employer_reports(request):
     jobs = Job.objects.filter(posted_by=request.user)
@@ -621,7 +634,7 @@ def employer_reports(request):
     }
     return render(request, 'core/employer_reports.html', context)
 
-
+#Employer Settings view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def employer_settings(request):
     profile, created = Profile.objects.get_or_create(
@@ -656,12 +669,13 @@ def employer_settings(request):
     }
     return render(request, 'core/employer_settings.html', context)
 
-
+#Job List view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def jobs_list(request):
     jobs = Job.objects.filter(posted_by=request.user).order_by('-posted_at')
     return render(request, 'core/jobs_list.html', {'jobs': jobs})
 
+#Apply Job view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
 def apply_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
@@ -750,11 +764,12 @@ def apply_job(request, job_id):
         },
     )
 
+#Application Success view ---------------------------------------------------------------------------------------------------------
 def application_success(request, job_id):
     job = Job.objects.get(id=job_id)
     return render(request, 'core/application_success.html', {'job': job})
 
-
+#Delete Application view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
 @require_POST
 def delete_application(request, application_id):
@@ -768,6 +783,7 @@ def delete_application(request, application_id):
     messages.success(request, 'Application withdrawn successfully.')
     return redirect('my_applications')
 
+#Admin Login and OTP Verification views ---------------------------------------------------------------------------------------------------------
 class AdminLoginForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -779,7 +795,7 @@ class AdminLoginForm(AuthenticationForm):
             'class': 'w-full border rounded px-3 py-2',
         })
 
-
+#OTP Verification form for Admin Login ---------------------------------------------------------------------------------------------------------
 def _send_admin_otp_email(user, otp_code):
     try:
         send_mail(
@@ -800,7 +816,7 @@ def _send_admin_otp_email(user, otp_code):
         print("ADMIN OTP EMAIL ERROR:", e)
         return False
 
-
+#Admin Login view ---------------------------------------------------------------------------------------------------------
 def admin_login(request):
     if request.user.is_authenticated and request.user.is_superuser:
         return redirect('admin_dashboard')
@@ -834,7 +850,7 @@ def admin_login(request):
 
     return render(request, 'core/admin_panel/admin_login.html', {'form': form, 'error': error})
 
-
+#OTP Verification view for Admin Login ---------------------------------------------------------------------------------------------------------
 def admin_verify_otp(request):
     user_id = request.session.get('pending_admin_user_id')
     pending_user = User.objects.filter(id=user_id, is_superuser=True).first() if user_id else None
@@ -1142,6 +1158,10 @@ def edit_profile(request):
     profile, created = JobSeekerProfile.objects.get_or_create(
         user=request.user, defaults={'full_name': request.user.username, 'phone': ''}
     )
+    verification, _ = BackgroundVerification.objects.get_or_create(job_seeker_profile=profile)
+    existing_documents = {
+        doc.document_type: doc for doc in profile.verification_documents.all()
+    }
 
     if request.method == 'POST':
         form = JobSeekerProfileForm(request.POST, request.FILES, instance=profile)
@@ -1153,7 +1173,35 @@ def edit_profile(request):
                 request.user.email = new_email
                 request.user.save()
 
-            messages.success(request, 'Profile updated successfully.')
+            # Handle document uploads
+            doc_field_map = {
+                'doc_10th': '10th_marksheet',
+                'doc_12th': '12th_marksheet',
+                'doc_degree': 'degree_marksheet',
+                'doc_relieving_letter': 'relieving_letter',
+                'doc_payslip': 'payslip',
+                'doc_offer_letter': 'offer_letter',
+            }
+            documents_changed = False
+            for field_name, doc_type in doc_field_map.items():
+                uploaded_file = request.FILES.get(field_name)
+                if uploaded_file:
+                    VerificationDocument.objects.update_or_create(
+                        job_seeker_profile=profile,
+                        document_type=doc_type,
+                        defaults={'file': uploaded_file}
+                    )
+                    documents_changed = True
+
+            if documents_changed:
+                verification.has_new_documents = True
+                if verification.status == 'not_requested':
+                    verification.status = 'pending'
+                verification.save()
+                messages.success(request, 'Profile and documents updated successfully.')
+            else:
+                messages.success(request, 'Profile updated successfully.')
+
             next_url = request.POST.get('next') or request.GET.get('next')
             if next_url:
                 return redirect(next_url)
@@ -1165,6 +1213,7 @@ def edit_profile(request):
         'form': form,
         'next': request.GET.get('next', ''),
         'current_email': request.user.email,
+        'existing_documents': existing_documents,
     })
 
 
@@ -1384,6 +1433,7 @@ def ats_checker(request):
     return render(request, 'core/ats_checker.html', {'result': result})
 
 
+#ats score checker ---------------------------------------------------------------------------------------------------------
 def compute_ats_score_for_application(application):
     job = application.job
     profile = application.job_seeker_profile
@@ -1409,6 +1459,8 @@ def compute_ats_score_for_application(application):
     score = round((len(matched) / len(jd_keywords)) * 100)
     return score
 
+
+#to delete account view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
 @require_POST
 def delete_account(request):
@@ -1430,6 +1482,8 @@ def create_notification(user, message, notification_type='general', link=''):
         link=link,
     )
 
+
+#notifications view ---------------------------------------------------------------------------------------------------------
 @login_required
 def notifications_list(request):
     notifications = request.user.notifications.all()[:30]
@@ -1459,6 +1513,7 @@ def toggle_save_job(request, job_id):
     return redirect(request.META.get('HTTP_REFERER', 'job_vacancies'))
 
 
+#saved jobs view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
 def saved_jobs_list(request):
     saved = SavedJob.objects.filter(user=request.user).select_related('job')
@@ -1489,7 +1544,7 @@ def walkin_jobs(request):
         'applied_job_ids': applied_job_ids,
     })
 
-
+#edit job view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 def edit_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)

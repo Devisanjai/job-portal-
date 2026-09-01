@@ -70,6 +70,12 @@
                 <span class="text-base">💬</span>
                 <span>Inquiries</span>
             </a>
+
+            <a href="{% url 'admin_verifications_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'verifications' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">🛡️</span>
+                <span>Verifications</span>
+            </a>
         </nav>
 
         <!-- Sidebar Footer -->

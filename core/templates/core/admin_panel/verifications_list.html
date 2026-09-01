@@ -1,0 +1,69 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Background Verifications{% endblock %}
+{% block panel_content %}
+
+<div class="mb-4 flex gap-3 text-sm">
+    <a href="{% url 'admin_verifications_list' %}" class="{% if not status %}font-bold underline{% endif %}">All</a>
+    <a href="?status=pending" class="{% if status == 'pending' %}font-bold underline{% endif %}">Pending</a>
+    <a href="?status=verified" class="{% if status == 'verified' %}font-bold underline{% endif %}">Verified</a>
+    <a href="?status=rejected" class="{% if status == 'rejected' %}font-bold underline{% endif %}">Rejected</a>
+    <a href="?status=flagged" class="{% if status == 'flagged' %}font-bold underline{% endif %}">Flagged</a>
+    <a href="?status=not_requested" class="{% if status == 'not_requested' %}font-bold underline{% endif %}">Not Requested</a>
+</div>
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Candidate</th>
+                <th>Status</th>
+                <th>New Documents</th>
+                <th>Verified By</th>
+                <th>Updated</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in page_obj %}
+            <tr class="border-b {% if v.has_new_documents %}bg-amber-50{% endif %}">
+                <td class="py-2">{{ v.job_seeker_profile.full_name }}</td>
+                <td>
+                    {% if v.status == 'verified' %}
+                        <span class="text-green-700 font-medium">Verified</span>
+                    {% elif v.status == 'rejected' %}
+                        <span class="text-red-700 font-medium">Rejected</span>
+                    {% elif v.status == 'flagged' %}
+                        <span class="text-purple-700 font-medium">Flagged</span>
+                    {% elif v.status == 'pending' %}
+                        <span class="text-amber-600 font-medium">Pending Review</span>
+                    {% else %}
+                        <span class="text-gray-500 font-medium">Not Requested</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if v.has_new_documents %}
+                        <span class="text-amber-700 font-semibold">● New</span>
+                    {% else %}
+                        <span class="text-gray-400">—</span>
+                    {% endif %}
+                </td>
+                <td>{{ v.verified_by.username|default:"—" }}</td>
+                <td>{{ v.updated_at|date:"d M Y" }}</td>
+                <td>
+                    <a href="{% url 'admin_verification_detail' v.id %}" class="underline text-red-600">Review</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="py-6 text-center text-gray-500">No verification records found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if status %}&status={{ status }}{% endif %}">Next</a>{% endif %}
+    </div>
+</div>
+
+{% endblock %}

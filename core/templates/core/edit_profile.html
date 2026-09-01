@@ -5,7 +5,7 @@
 
 {% block content %}
 
-<div class="apply-page-wrap">
+<div class="profile-edit-wrap">
     <h2 class="apply-job-title">Edit Your Profile</h2>
     <p class="apply-job-meta">Update your details below. Changes apply to all your existing applications.</p>
 
@@ -17,31 +17,88 @@
     {% endfor %}
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" class="add-candidate-form">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
+    <div class="edit-profile-grid">
 
-        <div class="form-grid">
-            {% for field in form %}
-            <div class="form-group {% if field.name == 'certificates' or field.name == 'skills' %}form-group-full{% endif %}">
-                <label>{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                <div class="form-error">{{ field.errors }}</div>
-                {% endif %}
-            </div>
-            {% if field.name == 'full_name' %}
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" value="{{ current_email }}" placeholder="you@example.com">
-            </div>
-            {% endif %}
-            {% endfor %}
+        <!-- LEFT PANEL: Profile form -->
+        <div class="edit-profile-panel">
+            <h3>Profile Details</h3>
+            <p class="panel-desc">Your basic information, visible to employers when you apply.</p>
+
+            <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="form-grid">
+                    {% for field in form %}
+                    <div class="form-group {% if field.name == 'certificates' or field.name == 'skills' %}form-group-full{% endif %}">
+                        <label>{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <div class="form-error">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% if field.name == 'full_name' %}
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value="{{ current_email }}" placeholder="you@example.com">
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <button type="submit" class="dashboard-btn">Update Profile</button>
+            </form>
         </div>
-        <button type="submit" class="dashboard-btn">Update Profile</button>
-    </form>
+
+        <!-- RIGHT PANEL: Background verification documents -->
+        <div class="edit-profile-panel">
+            <h3>Background Verification Documents</h3>
+            <p class="panel-desc">
+                Upload documents relevant to your profile. These are stored securely and only shown to employers who unlock background verification for your application — never shared publicly. Uploading new documents will send your profile for re-review.
+            </p>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="email" value="{{ current_email }}">
+                {% for field in form %}
+                    {% if field.name != 'resume' and field.is_hidden == False %}
+                    <input type="hidden" name="{{ field.html_name }}" value="{{ field.value|default_if_none:'' }}">
+                    {% endif %}
+                {% endfor %}
+
+                <div class="form-grid" style="grid-template-columns: 1fr;">
+                    <div class="form-group">
+                        <label>10th Marksheet {% if existing_documents.10th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_10th" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="form-group">
+                        <label>12th Marksheet {% if existing_documents.12th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_12th" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="form-group">
+                        <label>Degree / College Marksheet {% if existing_documents.degree_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_degree" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="form-group">
+                        <label>Relieving Letter (if experienced) {% if existing_documents.relieving_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_relieving_letter" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="form-group">
+                        <label>Payslip (if experienced) {% if existing_documents.payslip %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_payslip" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="form-group">
+                        <label>Previous Offer Letter (if experienced) {% if existing_documents.offer_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <input type="file" name="doc_offer_letter" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>
+                <button type="submit" class="dashboard-btn">Upload Documents</button>
+            </form>
+        </div>
+
+    </div>
 </div>
-<div style="margin-top: 3rem; border: 1px solid #fecaca; border-radius: 0.75rem; overflow: hidden;">
+
+<div style="max-width: 1100px; margin: 0 auto 3rem auto; padding: 0 1rem; border: 1px solid #fecaca; border-radius: 0.75rem; overflow: hidden;">
     <div style="background: #fef2f2; padding: 1.5rem 1.75rem; display: flex; align-items: flex-start; gap: 1rem;">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: #fee2e2; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.1rem;">
             ⚠️

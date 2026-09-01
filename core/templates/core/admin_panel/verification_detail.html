@@ -1,0 +1,50 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Review Verification{% endblock %}
+{% block panel_content %}
+
+<a href="{% url 'admin_verifications_list' %}" class="text-sm text-red-600 hover:underline">← Back to all verifications</a>
+
+<div class="mt-4 border-2 border-gray-800 rounded-lg bg-white p-6 mb-6">
+    <h2 class="text-xl font-bold mb-1">{{ verification.job_seeker_profile.full_name }}</h2>
+    <p class="text-sm text-gray-600 mb-4">
+        {{ verification.job_seeker_profile.user.email }} ·
+        {% if verification.job_seeker_profile.is_experienced %}Experienced{% else %}Fresher{% endif %}
+    </p>
+
+    <h3 class="font-semibold mb-2 text-sm tracking-wide text-gray-700">UPLOADED DOCUMENTS</h3>
+    {% if documents %}
+        <ul class="text-sm space-y-2 mb-6">
+            {% for doc in documents %}
+            <li class="flex justify-between border-b pb-2">
+                <span>{{ doc.get_document_type_display }}</span>
+                <span class="flex gap-3">
+                    <span class="text-gray-400">{{ doc.uploaded_at|date:"d M Y" }}</span>
+                    <a href="{{ doc.file.url }}" target="_blank" class="text-red-600 underline">View</a>
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-sm text-gray-500 mb-6">No documents uploaded yet.</p>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <label class="block text-sm font-medium mb-1">Status</label>
+        <select name="status" class="w-full border rounded px-3 py-2 mb-4">
+            {% for value, label in verification.STATUS_CHOICES %}
+                <option value="{{ value }}" {% if verification.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="block text-sm font-medium mb-1">Internal Notes</label>
+        <textarea name="internal_notes" rows="4" class="w-full border rounded px-3 py-2 mb-4">{{ verification.internal_notes }}</textarea>
+        <p class="text-xs text-gray-400 mb-4">Only visible to your admin team — never shown to the employer or candidate.</p>
+
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-semibold">
+            Save Status
+        </button>
+    </form>
+</div>
+
+{% endblock %}

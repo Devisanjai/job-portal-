@@ -51,7 +51,8 @@ urlpatterns = [
     path('admin-verify-otp/', views.admin_verify_otp, name='admin_verify_otp'),
     path('employer-settings/', views.employer_settings, name='employer_settings'),
     path('job/<int:job_id>/edit/', views.edit_job, name='edit_job'),
-
+    path('control-panel/verifications/', admin_panel_views.admin_verifications_list, name='admin_verifications_list'),
+    path('control-panel/verifications/<int:verification_id>/', admin_panel_views.admin_verification_detail, name='admin_verification_detail'),
     # OTP Signup Verification
     path('verify-signup-otp/', views.verify_signup_otp, name='verify_signup_otp'),
     path('resend-signup-otp/', views.resend_signup_otp, name='resend_signup_otp'),

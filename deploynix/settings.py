@@ -126,7 +126,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Razorpay
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
 RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
-SUBSCRIPTION_ENABLED = False
+SUBSCRIPTION_ENABLED = True  # Set to True to enable subscription feature
 
 # Email configuration (Gmail SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
