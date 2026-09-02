@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from .storage import protected_storage
 
 def validate_file_size(value):
     max_size_mb = 5
@@ -240,6 +241,7 @@ class VerificationDocument(models.Model):
     document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES)
     file = models.FileField(
         upload_to='verification_docs/',
+        storage=protected_storage,
         validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png']), validate_file_size],
         help_text="PDF or image, max 5MB"
     )
@@ -404,3 +406,12 @@ class AdminLoginOTP(models.Model):
 def create_background_verification(sender, instance, created, **kwargs):
     if created:
         BackgroundVerification.objects.get_or_create(job_seeker_profile=instance)
+
+class VerifierProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='verifier_profile')
+    is_active_verifier = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verifiers_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Verifier: {self.user.username}"

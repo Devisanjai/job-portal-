@@ -1,0 +1,60 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Verifiers{% endblock %}
+{% block panel_content %}
+
+<div class="grid md:grid-cols-2 gap-6">
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3">Add Verifier</h3>
+        <form method="post" action="{% url 'admin_verifier_create' %}">
+            {% csrf_token %}
+            <label class="block text-sm font-medium mb-1">Username</label>
+            <input type="text" name="username" class="w-full border rounded px-3 py-2 mb-3" required>
+            <label class="block text-sm font-medium mb-1">Email</label>
+            <input type="email" name="email" class="w-full border rounded px-3 py-2 mb-3">
+            <label class="block text-sm font-medium mb-1">Password</label>
+            <input type="password" name="password" class="w-full border rounded px-3 py-2 mb-4" required>
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold">
+                Create Verifier
+            </button>
+        </form>
+    </div>
+
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3">Existing Verifiers</h3>
+        <table class="w-full text-sm border-collapse">
+            <thead>
+                <tr class="border-b text-left">
+                    <th class="py-2">Username</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in verifiers %}
+                <tr class="border-b">
+                    <td class="py-2">{{ v.user.username }}</td>
+                    <td>
+                        {% if v.is_active_verifier %}
+                            <span class="text-green-700">Active</span>
+                        {% else %}
+                            <span class="text-red-700">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'admin_verifier_toggle_active' v.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="underline text-blue-700">
+                                {% if v.is_active_verifier %}Disable{% else %}Enable{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="py-6 text-center text-gray-500">No verifiers yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -19,7 +19,7 @@
                 <span>{{ doc.get_document_type_display }}</span>
                 <span class="flex gap-3">
                     <span class="text-gray-400">{{ doc.uploaded_at|date:"d M Y" }}</span>
-                    <a href="{{ doc.file.url }}" target="_blank" class="text-red-600 underline">View</a>
+                    <a href="{% url 'serve_verification_document' doc.id %}" target="_blank" class="text-red-600 underline">View</a>
                 </span>
             </li>
             {% endfor %}

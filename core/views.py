@@ -37,6 +37,7 @@ from django.db.models.functions import TruncMonth
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import PasswordChangeForm
 from .models import AdminLoginOTP
+from django.http import FileResponse, HttpResponseForbidden
 import random
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -1565,3 +1566,51 @@ def edit_job(request, job_id):
         form = JobPostForm(instance=job)
 
     return render(request, 'core/edit_job.html', {'form': form, 'job': job})
+
+#serve_verification_document view ---------------------------------------------------------------------------------------------------------
+@login_required
+def serve_verification_document(request, document_id):
+    doc = get_object_or_404(VerificationDocument, id=document_id)
+    profile = doc.job_seeker_profile
+    user = request.user
+
+    is_owner = hasattr(user, 'jobseeker_profile') and user.jobseeker_profile_id == profile.id
+    is_admin_reviewer = user.is_staff or user.is_superuser
+    is_authorized_employer = False
+
+    if hasattr(user, 'profile') and user.profile.is_employer:
+        subscription = getattr(user, 'subscription', None)
+        has_bgv_access = subscription and subscription.plan.includes_bgv_access
+        if has_bgv_access:
+            is_authorized_employer = JobApplication.objects.filter(
+                job__posted_by=user, job_seeker_profile=profile
+            ).exists()
+
+    if not (is_owner or is_admin_reviewer or is_authorized_employer):
+        return HttpResponseForbidden("You are not authorized to view this document.")
+
+    return FileResponse(doc.file.open('rb'), filename=doc.file.name.split('/')[-1])
+
+def verifier_login(request):
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'verifier_profile') and request.user.verifier_profile.is_active_verifier:
+            return redirect('admin_verifications_list')
+        elif request.user.is_superuser:
+            return redirect('admin_dashboard')
+
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            is_verifier = hasattr(user, 'verifier_profile') and user.verifier_profile.is_active_verifier
+            if is_verifier:
+                login(request, user)
+                return redirect('admin_verifications_list')
+            else:
+                error = "This login is for verification staff only."
+        else:
+            error = "Invalid username or password."
+
+    return render(request, 'core/verifier_login.html', {'error': error})

@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from .decorators import admin_required
-from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile,BackgroundVerification
+from .decorators import admin_required, verifier_or_admin_required
+from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile
 
 #admin dashboard view -------------------------------------------------------------------------------------------------------
 @admin_required
@@ -120,8 +120,9 @@ def admin_inquiry_update_status(request, inquiry_id):
         inquiry.save(update_fields=['status'])
         messages.success(request, "Inquiry status updated.")
     return redirect('admin_inquiries_list')
+
 #admin verification list view ---------------------------------------------------------------------------------------------------------
-@admin_required
+@verifier_or_admin_required
 def admin_verifications_list(request):
     verifications = BackgroundVerification.objects.select_related(
         'job_seeker_profile', 'job_seeker_profile__user', 'verified_by'
@@ -140,7 +141,7 @@ def admin_verifications_list(request):
     })
 
 #admin verification detail view ---------------------------------------------------------------------------------------------------------
-@admin_required
+@verifier_or_admin_required
 def admin_verification_detail(request, verification_id):
     verification = get_object_or_404(BackgroundVerification, id=verification_id)
     documents = verification.job_seeker_profile.verification_documents.all().order_by('document_type')
@@ -165,3 +166,45 @@ def admin_verification_detail(request, verification_id):
         'verification': verification,
         'documents': documents,
     })
+
+#admin verifiers list view ---------------------------------------------------------------------------------------------------------
+@admin_required
+def admin_verifiers_list(request):
+    verifiers = VerifierProfile.objects.select_related('user').order_by('-created_at')
+    return render(request, 'core/admin_panel/verifiers_list.html', {
+        'active_tab': 'verifiers',
+        'verifiers': verifiers,
+    })
+
+#admin verifier create view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_verifier_create(request):
+    username = request.POST.get('username', '').strip()
+    email = request.POST.get('email', '').strip()
+    password = request.POST.get('password', '').strip()
+
+    if not username or not password:
+        messages.error(request, "Username and password are required.")
+        return redirect('admin_verifiers_list')
+
+    if User.objects.filter(username=username).exists():
+        messages.error(request, f"Username '{username}' is already taken.")
+        return redirect('admin_verifiers_list')
+
+    user = User.objects.create_user(username=username, email=email, password=password)
+    VerifierProfile.objects.create(user=user, created_by=request.user)
+    messages.success(request, f"Verifier account '{username}' created.")
+    return redirect('admin_verifiers_list')
+
+#admin verifier toggle active view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_verifier_toggle_active(request, verifier_id):
+    verifier = get_object_or_404(VerifierProfile, id=verifier_id)
+    verifier.is_active_verifier = not verifier.is_active_verifier
+    verifier.save(update_fields=['is_active_verifier'])
+    verifier.user.is_active = verifier.is_active_verifier
+    verifier.user.save(update_fields=['is_active'])
+    messages.success(request, f"{verifier.user.username} is now {'active' if verifier.is_active_verifier else 'disabled'}.")
+    return redirect('admin_verifiers_list')

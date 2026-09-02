@@ -47,6 +47,7 @@
 
         <!-- Navigation Tabs -->
         <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+            {% if request.user.is_superuser %}
             <a href="{% url 'admin_dashboard' %}"
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'dashboard' or not active_tab %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
                 <span class="text-base">📊</span>
@@ -70,6 +71,13 @@
                 <span class="text-base">💬</span>
                 <span>Inquiries</span>
             </a>
+
+            <a href="{% url 'admin_verifiers_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'verifiers' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">🛂</span>
+                <span>Verifiers</span>
+            </a>
+            {% endif %}
 
             <a href="{% url 'admin_verifications_list' %}"
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'verifications' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
@@ -123,7 +131,9 @@
                     </div>
                     <div class="hidden sm:block text-left">
                         <div class="text-xs font-bold text-gray-800 leading-none">{{ request.user.username }}</div>
-                        <div class="text-[10px] text-gray-500 font-medium mt-0.5">Admin Account</div>
+                        <div class="text-[10px] text-gray-500 font-medium mt-0.5">
+                            {% if request.user.is_superuser %}Admin Account{% else %}Verifier Account{% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
