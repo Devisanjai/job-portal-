@@ -1,0 +1,81 @@
+{% extends 'core/base.html' %}
+{% block title %}Complete Verification - Deploynix{% endblock %}
+{% block content %}
+
+<div class="apply-page-wrap">
+    <h2 class="apply-job-title">Background Verification Request</h2>
+    <p class="apply-job-meta">
+        {{ verification_request.job_application.job.company_name }} has requested background verification for your application to
+        <strong>{{ verification_request.job_application.job.job_title }}</strong>.
+    </p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="bg-green-50 text-green-700 text-sm p-3 rounded mb-4">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="add-candidate-form">
+        {% csrf_token %}
+
+        <h3 class="font-bold mb-2 mt-2">ID Verification</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>PAN Card {% if existing_documents.pan_card %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_pan" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            <div class="form-group">
+                <label>Other Government ID {% if existing_documents.id_other %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_id_other" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+        </div>
+
+        <h3 class="font-bold mb-2 mt-4">Education Verification</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>10th Marksheet {% if existing_documents.10th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_10th" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            <div class="form-group">
+                <label>12th Marksheet {% if existing_documents.12th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_12th" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            <div class="form-group">
+                <label>Degree / College Marksheet {% if existing_documents.degree_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_degree" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+        </div>
+
+        <h3 class="font-bold mb-2 mt-4">Employment Record</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Relieving Letter {% if existing_documents.relieving_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_relieving_letter" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            <div class="form-group">
+                <label>Payslip {% if existing_documents.payslip %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_payslip" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            <div class="form-group">
+                <label>Previous Offer Letter {% if existing_documents.offer_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_offer_letter" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+        </div>
+
+        <h3 class="font-bold mb-2 mt-4">Address Verification</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Utility Bill / Rental Agreement {% if existing_documents.address_proof %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                <input type="file" name="doc_address_proof" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-500 mt-4 mb-4">
+            Criminal record verification is conducted separately by our verification team and does not require a document upload from you.
+        </p>
+
+        <button type="submit" class="dashboard-btn mt-2">Submit Documents</button>
+    </form>
+</div>
+
+{% endblock %}

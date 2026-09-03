@@ -22,6 +22,33 @@
             {% if application.display_resume %}
             <div><a href="{{ application.display_resume.url }}" target="_blank" class="dashboard-action-btn" style="display:inline-block; width:auto;">View Resume 📄</a></div>
             {% endif %}
+
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+                <strong>Background Verification:</strong>
+                {% if application.verification_request %}
+                    <div style="margin-top: 0.5rem;">
+                        {% if application.verification_request.status == 'verified' %}
+                            <span style="color: #16a34a; font-weight: 600;">✓ Verified</span>
+                        {% elif application.verification_request.status == 'rejected' %}
+                            <span style="color: #dc2626; font-weight: 600;">✕ Rejected</span>
+                        {% elif application.verification_request.status == 'flagged' %}
+                            <span style="color: #7c3aed; font-weight: 600;">⚑ Flagged</span>
+                        {% else %}
+                            <span style="color: #d97706; font-weight: 600;">Pending Review</span>
+                        {% endif %}
+                        <p style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">
+                            Requested on {{ application.verification_request.requested_at|date:"d M Y" }}
+                        </p>
+                    </div>
+                {% else %}
+                    <form method="post" action="{% url 'request_background_verification' application.id %}" style="margin-top: 0.5rem;">
+                        {% csrf_token %}
+                        <button type="submit" class="dashboard-action-btn" style="display:inline-block; width:auto; background: #dc2626; color: white; border: none; cursor: pointer;">
+                            Request Background Verification
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

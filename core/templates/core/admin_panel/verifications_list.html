@@ -8,7 +8,6 @@
     <a href="?status=verified" class="{% if status == 'verified' %}font-bold underline{% endif %}">Verified</a>
     <a href="?status=rejected" class="{% if status == 'rejected' %}font-bold underline{% endif %}">Rejected</a>
     <a href="?status=flagged" class="{% if status == 'flagged' %}font-bold underline{% endif %}">Flagged</a>
-    <a href="?status=not_requested" class="{% if status == 'not_requested' %}font-bold underline{% endif %}">Not Requested</a>
 </div>
 
 <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
@@ -16,6 +15,7 @@
         <thead>
             <tr class="border-b text-left">
                 <th class="py-2">Candidate</th>
+                <th>Company / Role</th>
                 <th>Status</th>
                 <th>New Documents</th>
                 <th>Verified By</th>
@@ -26,7 +26,8 @@
         <tbody>
             {% for v in page_obj %}
             <tr class="border-b {% if v.has_new_documents %}bg-amber-50{% endif %}">
-                <td class="py-2">{{ v.job_seeker_profile.full_name }}</td>
+                <td class="py-2">{{ v.job_application.display_full_name }}</td>
+                <td>{{ v.job_application.job.company_name }} — {{ v.job_application.job.job_title }}</td>
                 <td>
                     {% if v.status == 'verified' %}
                         <span class="text-green-700 font-medium">Verified</span>
@@ -34,10 +35,8 @@
                         <span class="text-red-700 font-medium">Rejected</span>
                     {% elif v.status == 'flagged' %}
                         <span class="text-purple-700 font-medium">Flagged</span>
-                    {% elif v.status == 'pending' %}
-                        <span class="text-amber-600 font-medium">Pending Review</span>
                     {% else %}
-                        <span class="text-gray-500 font-medium">Not Requested</span>
+                        <span class="text-amber-600 font-medium">Pending Review</span>
                     {% endif %}
                 </td>
                 <td>
@@ -54,7 +53,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="6" class="py-6 text-center text-gray-500">No verification records found.</td></tr>
+            <tr><td colspan="7" class="py-6 text-center text-gray-500">No verification requests found.</td></tr>
             {% endfor %}
         </tbody>
     </table>

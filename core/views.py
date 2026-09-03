@@ -38,6 +38,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import PasswordChangeForm
 from .models import AdminLoginOTP
 from django.http import FileResponse, HttpResponseForbidden
+from .models import BackgroundVerificationRequest, VERIFICATION_CATEGORIES
 import random
 from .models import (
     Job, JobApplication, Inquiry, Interview,
@@ -1614,3 +1615,87 @@ def verifier_login(request):
             error = "Invalid username or password."
 
     return render(request, 'core/verifier_login.html', {'error': error})
+
+#request background verification view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='employer_login')
+@require_POST
+def request_background_verification(request, application_id):
+    application = get_object_or_404(JobApplication, id=application_id)
+
+    if application.job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('manage_candidates')
+
+    subscription = getattr(request.user, 'subscription', None)
+    if not subscription or not subscription.plan.includes_bgv_access:
+        messages.warning(request, "Background verification isn't included in your current plan. Upgrade to request verification.")
+        return redirect('subscription_plans')
+
+    verification_request, created = BackgroundVerificationRequest.objects.get_or_create(
+        job_application=application,
+        defaults={'requested_by': request.user}
+    )
+
+    if created:
+        if application.job_seeker_profile:
+            create_notification(
+                user=application.job_seeker_profile.user,
+                message=f"{application.job.company_name} has requested background verification for your application to {application.job.job_title}.",
+                notification_type='general',
+                link=reverse('complete_verification', args=[verification_request.id]),
+            )
+        messages.success(request, 'Background verification requested. The candidate has been notified.')
+    else:
+        messages.info(request, 'Verification was already requested for this candidate.')
+
+    return redirect('candidate_detail', application_id=application.id)
+
+# Complete Background Verification View---------------------------------------------------------------------------------------
+@login_required(login_url='job_seeker_login')
+def complete_verification(request, request_id):
+    verification_request = get_object_or_404(BackgroundVerificationRequest, id=request_id)
+    profile = verification_request.job_application.job_seeker_profile
+
+    if not profile or profile.user != request.user:
+        messages.error(request, 'You are not authorized to view this.')
+        return redirect('my_applications')
+
+    existing_documents = {doc.document_type: doc for doc in profile.verification_documents.all()}
+
+    if request.method == 'POST':
+        doc_field_map = {
+            'doc_pan': 'pan_card',
+            'doc_id_other': 'id_other',
+            'doc_10th': '10th_marksheet',
+            'doc_12th': '12th_marksheet',
+            'doc_degree': 'degree_marksheet',
+            'doc_relieving_letter': 'relieving_letter',
+            'doc_payslip': 'payslip',
+            'doc_offer_letter': 'offer_letter',
+            'doc_address_proof': 'address_proof',
+        }
+        documents_changed = False
+        for field_name, doc_type in doc_field_map.items():
+            uploaded_file = request.FILES.get(field_name)
+            if uploaded_file:
+                VerificationDocument.objects.update_or_create(
+                    job_seeker_profile=profile,
+                    document_type=doc_type,
+                    defaults={'file': uploaded_file}
+                )
+                documents_changed = True
+
+        if documents_changed:
+            verification_request.has_new_documents = True
+            verification_request.save(update_fields=['has_new_documents'])
+            messages.success(request, 'Documents submitted for verification.')
+        else:
+            messages.info(request, 'No new documents were selected.')
+
+        return redirect('complete_verification', request_id=verification_request.id)
+
+    return render(request, 'core/complete_verification.html', {
+        'verification_request': verification_request,
+        'existing_documents': existing_documents,
+        'categories': VERIFICATION_CATEGORIES,
+    })

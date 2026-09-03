@@ -12,6 +12,14 @@ def validate_file_size(value):
     if value.size > max_size_mb * 1024 * 1024:
         raise ValidationError(f'File size must be under {max_size_mb}MB.')
 
+
+VERIFICATION_CATEGORIES = {
+    'ID Verification': ['pan_card', 'id_other'],
+    'Education Verification': ['10th_marksheet', '12th_marksheet', 'degree_marksheet'],
+    'Employment Record': ['relieving_letter', 'payslip', 'offer_letter'],
+    'Address Verification': ['address_proof'],
+    'Other': ['other'],
+}
 # Profile model for both employers and job seekers -----------------------------------------------------------------------
 class Profile(models.Model):
     COMPANY_SIZE_CHOICES = [
@@ -227,12 +235,19 @@ class JobSeekerProfile(models.Model):
 #VerificationDocument model ---------------------------------------------------------------------------------------------------------------
 class VerificationDocument(models.Model):
     DOCUMENT_TYPES = [
+        # ID Verification
+        ('pan_card', 'PAN Card'),
+        ('id_other', 'Other Government ID'),
+        # Education Verification
         ('10th_marksheet', '10th Marksheet'),
         ('12th_marksheet', '12th Marksheet'),
         ('degree_marksheet', 'Degree/College Marksheet'),
+        # Employment Record
         ('relieving_letter', 'Relieving Letter'),
         ('payslip', 'Payslip'),
         ('offer_letter', 'Previous Offer Letter'),
+        # Address Verification
+        ('address_proof', 'Address Proof (Utility Bill / Rental Agreement)'),
         ('other', 'Other'),
     ]
     job_seeker_profile = models.ForeignKey(
@@ -249,6 +264,8 @@ class VerificationDocument(models.Model):
 
     def __str__(self):
         return f"{self.job_seeker_profile.full_name} - {self.get_document_type_display()}"
+
+    
 
 
 #BackgroundVerification model ---------------------------------------------------------------------------------------------------------------
@@ -415,3 +432,36 @@ class VerifierProfile(models.Model):
 
     def __str__(self):
         return f"Verifier: {self.user.username}"
+
+class BackgroundVerificationRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+        ('flagged', 'Flagged'),
+    ]
+    CRIMINAL_CHECK_CHOICES = [
+        ('not_checked', 'Not Checked'),
+        ('clear', 'Clear'),
+        ('flagged', 'Record Found'),
+    ]
+
+    job_application = models.OneToOneField(
+        JobApplication, on_delete=models.CASCADE, related_name='verification_request'
+    )
+    requested_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verification_requests_made'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    criminal_check_status = models.CharField(max_length=20, choices=CRIMINAL_CHECK_CHOICES, default='not_checked')
+    has_new_documents = models.BooleanField(default=False)
+    internal_notes = models.TextField(blank=True, help_text="Visible to admin/verification team only")
+    verified_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verification_requests_reviewed'
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.job_application.display_full_name} - {self.job_application.job.company_name} ({self.get_status_display()})"

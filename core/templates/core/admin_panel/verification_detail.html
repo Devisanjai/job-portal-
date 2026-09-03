@@ -5,10 +5,10 @@
 <a href="{% url 'admin_verifications_list' %}" class="text-sm text-red-600 hover:underline">← Back to all verifications</a>
 
 <div class="mt-4 border-2 border-gray-800 rounded-lg bg-white p-6 mb-6">
-    <h2 class="text-xl font-bold mb-1">{{ verification.job_seeker_profile.full_name }}</h2>
+    <h2 class="text-xl font-bold mb-1">{{ verification.job_application.display_full_name }}</h2>
     <p class="text-sm text-gray-600 mb-4">
-        {{ verification.job_seeker_profile.user.email }} ·
-        {% if verification.job_seeker_profile.is_experienced %}Experienced{% else %}Fresher{% endif %}
+        Applying to <strong>{{ verification.job_application.job.job_title }}</strong> at
+        <strong>{{ verification.job_application.job.company_name }}</strong>
     </p>
 
     <h3 class="font-semibold mb-2 text-sm tracking-wide text-gray-700">UPLOADED DOCUMENTS</h3>
@@ -34,6 +34,13 @@
         <select name="status" class="w-full border rounded px-3 py-2 mb-4">
             {% for value, label in verification.STATUS_CHOICES %}
                 <option value="{{ value }}" {% if verification.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="block text-sm font-medium mb-1">Criminal Check Status</label>
+        <select name="criminal_check_status" class="w-full border rounded px-3 py-2 mb-4">
+            {% for value, label in verification.CRIMINAL_CHECK_CHOICES %}
+                <option value="{{ value }}" {% if verification.criminal_check_status == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
 

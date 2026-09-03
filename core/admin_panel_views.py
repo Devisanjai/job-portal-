@@ -5,7 +5,7 @@ from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .decorators import admin_required, verifier_or_admin_required
-from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile
+from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES
 
 #admin dashboard view -------------------------------------------------------------------------------------------------------
 @admin_required
@@ -124,15 +124,15 @@ def admin_inquiry_update_status(request, inquiry_id):
 #admin verification list view ---------------------------------------------------------------------------------------------------------
 @verifier_or_admin_required
 def admin_verifications_list(request):
-    verifications = BackgroundVerification.objects.select_related(
-        'job_seeker_profile', 'job_seeker_profile__user', 'verified_by'
+    requests_qs = BackgroundVerificationRequest.objects.select_related(
+        'job_application', 'job_application__job', 'job_application__job_seeker_profile', 'verified_by'
     ).order_by('-has_new_documents', '-updated_at')
 
     status = request.GET.get('status')
-    if status in dict(BackgroundVerification.STATUS_CHOICES):
-        verifications = verifications.filter(status=status)
+    if status in dict(BackgroundVerificationRequest.STATUS_CHOICES):
+        requests_qs = requests_qs.filter(status=status)
 
-    paginator = Paginator(verifications, 20)
+    paginator = Paginator(requests_qs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'core/admin_panel/verifications_list.html', {
         'active_tab': 'verifications',
@@ -141,32 +141,37 @@ def admin_verifications_list(request):
     })
 
 #admin verification detail view ---------------------------------------------------------------------------------------------------------
+
 @verifier_or_admin_required
 def admin_verification_detail(request, verification_id):
-    verification = get_object_or_404(BackgroundVerification, id=verification_id)
-    documents = verification.job_seeker_profile.verification_documents.all().order_by('document_type')
+    verification_request = get_object_or_404(BackgroundVerificationRequest, id=verification_id)
+    profile = verification_request.job_application.job_seeker_profile
+    documents = profile.verification_documents.all().order_by('document_type') if profile else []
 
     if request.method == 'POST':
         new_status = request.POST.get('status')
+        criminal_status = request.POST.get('criminal_check_status')
         notes = request.POST.get('internal_notes', '')
 
-        if new_status in dict(BackgroundVerification.STATUS_CHOICES):
-            verification.status = new_status
-            verification.internal_notes = notes
-            verification.has_new_documents = False
+        if new_status in dict(BackgroundVerificationRequest.STATUS_CHOICES):
+            verification_request.status = new_status
+            verification_request.internal_notes = notes
+            verification_request.has_new_documents = False
+            if criminal_status in dict(BackgroundVerificationRequest.CRIMINAL_CHECK_CHOICES):
+                verification_request.criminal_check_status = criminal_status
             if new_status in ('verified', 'rejected', 'flagged'):
-                verification.verified_by = request.user
-                verification.verified_at = timezone.now()
-            verification.save()
-            messages.success(request, f"Status updated to {verification.get_status_display()}.")
+                verification_request.verified_by = request.user
+                verification_request.verified_at = timezone.now()
+            verification_request.save()
+            messages.success(request, f"Status updated to {verification_request.get_status_display()}.")
             return redirect('admin_verifications_list')
 
     return render(request, 'core/admin_panel/verification_detail.html', {
         'active_tab': 'verifications',
-        'verification': verification,
+        'verification': verification_request,
         'documents': documents,
+        'categories': VERIFICATION_CATEGORIES,
     })
-
 #admin verifiers list view ---------------------------------------------------------------------------------------------------------
 @admin_required
 def admin_verifiers_list(request):
