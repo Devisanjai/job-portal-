@@ -23,18 +23,25 @@
             <div><a href="{{ application.display_resume.url }}" target="_blank" class="dashboard-action-btn" style="display:inline-block; width:auto;">View Resume 📄</a></div>
             {% endif %}
 
-            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
                 <strong>Background Verification:</strong>
                 {% if application.verification_request %}
                     <div style="margin-top: 0.5rem;">
-                        {% if application.verification_request.status == 'verified' %}
-                            <span style="color: #16a34a; font-weight: 600;">✓ Verified</span>
-                        {% elif application.verification_request.status == 'rejected' %}
-                            <span style="color: #dc2626; font-weight: 600;">✕ Rejected</span>
-                        {% elif application.verification_request.status == 'flagged' %}
-                            <span style="color: #7c3aed; font-weight: 600;">⚑ Flagged</span>
+                        {% if application.verification_request.status == 'pending' %}
+                            <span style="color: #d97706; font-weight: 600;">Requested</span>
+                        {% elif application.verification_request.status == 'in_progress' %}
+                            <span style="color: #2563eb; font-weight: 600;">Under Process</span>
                         {% else %}
-                            <span style="color: #d97706; font-weight: 600;">Pending Review</span>
+                            <span style="color: #16a34a; font-weight: 600;">Completed
+                                — {% if application.verification_request.status == 'verified' %}Verified
+                                  {% elif application.verification_request.status == 'rejected' %}Rejected
+                                  {% else %}Flagged{% endif %}
+                            </span>
+                            {% if application.verification_request.employer_report %}
+                                <p style="color: #374151; font-size: 0.9rem; margin-top: 0.5rem; background: #f9fafb; padding: 0.75rem; border-radius: 0.375rem;">
+                                    {{ application.verification_request.employer_report }}
+                                </p>
+                            {% endif %}
                         {% endif %}
                         <p style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">
                             Requested on {{ application.verification_request.requested_at|date:"d M Y" }}

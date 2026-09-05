@@ -1626,6 +1626,10 @@ def request_background_verification(request, application_id):
         messages.error(request, 'You are not authorized to do that.')
         return redirect('manage_candidates')
 
+    if application.status not in ('shortlisted', 'hired'):
+        messages.warning(request, 'Background verification can only be requested for shortlisted or hired candidates.')
+        return redirect('candidate_detail', application_id=application.id)
+
     subscription = getattr(request.user, 'subscription', None)
     if not subscription or not subscription.plan.includes_bgv_access:
         messages.warning(request, "Background verification isn't included in your current plan. Upgrade to request verification.")
@@ -1649,6 +1653,8 @@ def request_background_verification(request, application_id):
         messages.info(request, 'Verification was already requested for this candidate.')
 
     return redirect('candidate_detail', application_id=application.id)
+
+    
 
 # Complete Background Verification View---------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
@@ -1699,3 +1705,20 @@ def complete_verification(request, request_id):
         'existing_documents': existing_documents,
         'categories': VERIFICATION_CATEGORIES,
     })
+
+#delete verification document view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='job_seeker_login')
+@require_POST
+def delete_verification_document(request, document_id):
+    doc = get_object_or_404(VerificationDocument, id=document_id)
+
+    if doc.job_seeker_profile.user != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('edit_profile')
+
+    doc.file.delete(save=False)
+    doc.delete()
+    messages.success(request, 'Document removed.')
+
+    next_url = request.POST.get('next') or 'edit_profile'
+    return redirect(next_url)

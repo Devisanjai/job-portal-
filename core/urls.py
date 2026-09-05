@@ -62,7 +62,10 @@ urlpatterns = [
     path('control-panel/verifiers/create/', admin_panel_views.admin_verifier_create, name='admin_verifier_create'),
     path('candidate/<int:application_id>/request-verification/', views.request_background_verification, name='request_background_verification'),
     path('verification/complete/<int:request_id>/', views.complete_verification, name='complete_verification'),
+        path('control-panel/verifications/<int:verification_id>/accept/', admin_panel_views.admin_verification_accept, name='admin_verification_accept'),
+        path('control-panel/verifications/<int:verification_id>/request-more/', admin_panel_views.admin_request_more_documents, name='admin_request_more_documents'),
     path('control-panel/verifiers/<int:verifier_id>/toggle-active/', admin_panel_views.admin_verifier_toggle_active, name='admin_verifier_toggle_active'),
+        path('verification-document/<int:document_id>/delete/', views.delete_verification_document, name='delete_verification_document'),
 
     # Password Reset
     path('password-reset/', auth_views.PasswordResetView.as_view(

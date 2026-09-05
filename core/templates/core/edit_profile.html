@@ -67,27 +67,87 @@
 
                 <div class="form-grid" style="grid-template-columns: 1fr;">
                     <div class="form-group">
-                        <label>10th Marksheet {% if existing_documents.10th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>10th Marksheet
+                            {% if existing_documents.10th_marksheet %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.10th_marksheet.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.10th_marksheet.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_10th" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <div class="form-group">
-                        <label>12th Marksheet {% if existing_documents.12th_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>12th Marksheet
+                            {% if existing_documents.12th_marksheet %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.12th_marksheet.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.12th_marksheet.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_12th" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <div class="form-group">
-                        <label>Degree / College Marksheet {% if existing_documents.degree_marksheet %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>Degree / College Marksheet
+                            {% if existing_documents.degree_marksheet %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.degree_marksheet.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.degree_marksheet.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_degree" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <div class="form-group">
-                        <label>Relieving Letter (if experienced) {% if existing_documents.relieving_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>Relieving Letter (if experienced)
+                            {% if existing_documents.relieving_letter %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.relieving_letter.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.relieving_letter.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_relieving_letter" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <div class="form-group">
-                        <label>Payslip (if experienced) {% if existing_documents.payslip %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>Payslip (if experienced)
+                            {% if existing_documents.payslip %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.payslip.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.payslip.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_payslip" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                     <div class="form-group">
-                        <label>Previous Offer Letter (if experienced) {% if existing_documents.offer_letter %}<span class="doc-uploaded-badge">✓ Uploaded</span>{% endif %}</label>
+                        <label>Previous Offer Letter (if experienced)
+                            {% if existing_documents.offer_letter %}
+                                <span class="doc-uploaded-badge">✓ Uploaded</span>
+                                <a href="{% url 'serve_verification_document' existing_documents.offer_letter.id %}" target="_blank" style="font-size: 0.75rem; margin-left: 0.5rem;">View</a>
+                                <form method="post" action="{% url 'delete_verification_document' existing_documents.offer_letter.id %}" style="display: inline;" onsubmit="return confirm('Remove this document?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'edit_profile' %}">
+                                    <button type="submit" style="color: #dc2626; font-size: 0.75rem; margin-left: 0.5rem; background: none; border: none; cursor: pointer; text-decoration: underline;">Delete</button>
+                                </form>
+                            {% endif %}
+                        </label>
                         <input type="file" name="doc_offer_letter" accept=".pdf,.jpg,.jpeg,.png">
                     </div>
                 </div>

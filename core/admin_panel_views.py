@@ -4,8 +4,10 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.urls import reverse
 from .decorators import admin_required, verifier_or_admin_required
 from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES
+from .views import create_notification
 
 #admin dashboard view -------------------------------------------------------------------------------------------------------
 @admin_required
@@ -141,7 +143,6 @@ def admin_verifications_list(request):
     })
 
 #admin verification detail view ---------------------------------------------------------------------------------------------------------
-
 @verifier_or_admin_required
 def admin_verification_detail(request, verification_id):
     verification_request = get_object_or_404(BackgroundVerificationRequest, id=verification_id)
@@ -152,10 +153,12 @@ def admin_verification_detail(request, verification_id):
         new_status = request.POST.get('status')
         criminal_status = request.POST.get('criminal_check_status')
         notes = request.POST.get('internal_notes', '')
+        employer_report = request.POST.get('employer_report', '')
 
         if new_status in dict(BackgroundVerificationRequest.STATUS_CHOICES):
             verification_request.status = new_status
             verification_request.internal_notes = notes
+            verification_request.employer_report = employer_report
             verification_request.has_new_documents = False
             if criminal_status in dict(BackgroundVerificationRequest.CRIMINAL_CHECK_CHOICES):
                 verification_request.criminal_check_status = criminal_status
@@ -172,6 +175,7 @@ def admin_verification_detail(request, verification_id):
         'documents': documents,
         'categories': VERIFICATION_CATEGORIES,
     })
+
 #admin verifiers list view ---------------------------------------------------------------------------------------------------------
 @admin_required
 def admin_verifiers_list(request):
@@ -213,3 +217,38 @@ def admin_verifier_toggle_active(request, verifier_id):
     verifier.user.save(update_fields=['is_active'])
     messages.success(request, f"{verifier.user.username} is now {'active' if verifier.is_active_verifier else 'disabled'}.")
     return redirect('admin_verifiers_list')
+
+#admin request more documents view ---------------------------------------------------------------------------------------------------------
+@verifier_or_admin_required
+@require_POST
+def admin_request_more_documents(request, verification_id):
+    verification_request = get_object_or_404(BackgroundVerificationRequest, id=verification_id)
+    message_text = request.POST.get('message', '').strip()
+
+    if not message_text:
+        messages.error(request, 'Please write a message describing what is needed.')
+        return redirect('admin_verification_detail', verification_id=verification_id)
+
+    verification_request.additional_info_requested = message_text
+    verification_request.save(update_fields=['additional_info_requested'])
+
+    profile = verification_request.job_application.job_seeker_profile
+    if profile:
+        create_notification(
+            user=profile.user,
+            message=f"Additional documents needed for your verification: {message_text}",
+            notification_type='general',
+            link=reverse('complete_verification', args=[verification_request.id]),
+        )
+    messages.success(request, 'Candidate notified.')
+    return redirect('admin_verification_detail', verification_id=verification_id)
+
+#admin verification accept view ---------------------------------------------------------------------------------------------------------
+@verifier_or_admin_required
+@require_POST
+def admin_verification_accept(request, verification_id):
+    verification_request = get_object_or_404(BackgroundVerificationRequest, id=verification_id)
+    verification_request.status = 'in_progress'
+    verification_request.save(update_fields=['status'])
+    messages.success(request, 'Verification accepted and marked as Under Process.')
+    return redirect('admin_verification_detail', verification_id=verification_id)

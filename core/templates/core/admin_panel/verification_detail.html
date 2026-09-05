@@ -11,6 +11,15 @@
         <strong>{{ verification.job_application.job.company_name }}</strong>
     </p>
 
+    {% if verification.status == 'pending' %}
+    <form method="post" action="{% url 'admin_verification_accept' verification.id %}" class="mb-6">
+        {% csrf_token %}
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded font-semibold">
+            Accept & Start Processing
+        </button>
+    </form>
+    {% endif %}
+
     <h3 class="font-semibold mb-2 text-sm tracking-wide text-gray-700">UPLOADED DOCUMENTS</h3>
     {% if documents %}
         <ul class="text-sm space-y-2 mb-6">
@@ -27,6 +36,20 @@
     {% else %}
         <p class="text-sm text-gray-500 mb-6">No documents uploaded yet.</p>
     {% endif %}
+
+        <div class="border-t pt-4 mt-4">
+        <h3 class="font-semibold mb-2 text-sm tracking-wide text-gray-700">REQUEST ADDITIONAL DOCUMENTS</h3>
+        <form method="post" action="{% url 'admin_request_more_documents' verification.id %}">
+            {% csrf_token %}
+            <textarea name="message" rows="2" class="w-full border rounded px-3 py-2 mb-2" placeholder="e.g. Please upload your utility bill and police clearance certificate"></textarea>
+            <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-sm font-semibold">
+                Notify Candidate
+            </button>
+        </form>
+        {% if verification.additional_info_requested %}
+            <p class="text-xs text-gray-400 mt-2">Last request sent: "{{ verification.additional_info_requested }}"</p>
+        {% endif %}
+    </div>
 
     <form method="post">
         {% csrf_token %}
@@ -47,6 +70,10 @@
         <label class="block text-sm font-medium mb-1">Internal Notes</label>
         <textarea name="internal_notes" rows="4" class="w-full border rounded px-3 py-2 mb-4">{{ verification.internal_notes }}</textarea>
         <p class="text-xs text-gray-400 mb-4">Only visible to your admin team — never shown to the employer or candidate.</p>
+
+        <label class="block text-sm font-medium mb-1">Employer Report</label>
+        <textarea name="employer_report" rows="4" class="w-full border rounded px-3 py-2 mb-4">{{ verification.employer_report }}</textarea>
+        <p class="text-xs text-gray-400 mb-4">This explanation is shown to the employer once verification is completed.</p>
 
         <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded font-semibold">
             Save Status

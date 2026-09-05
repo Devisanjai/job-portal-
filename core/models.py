@@ -18,6 +18,7 @@ VERIFICATION_CATEGORIES = {
     'Education Verification': ['10th_marksheet', '12th_marksheet', 'degree_marksheet'],
     'Employment Record': ['relieving_letter', 'payslip', 'offer_letter'],
     'Address Verification': ['address_proof'],
+    'Criminal Verification': ['criminal_record_certificate'],
     'Other': ['other'],
 }
 # Profile model for both employers and job seekers -----------------------------------------------------------------------
@@ -235,7 +236,7 @@ class JobSeekerProfile(models.Model):
 #VerificationDocument model ---------------------------------------------------------------------------------------------------------------
 class VerificationDocument(models.Model):
     DOCUMENT_TYPES = [
-        # ID Verification
+       # ID Verification
         ('pan_card', 'PAN Card'),
         ('id_other', 'Other Government ID'),
         # Education Verification
@@ -248,6 +249,8 @@ class VerificationDocument(models.Model):
         ('offer_letter', 'Previous Offer Letter'),
         # Address Verification
         ('address_proof', 'Address Proof (Utility Bill / Rental Agreement)'),
+        # Criminal Verification
+        ('criminal_record_certificate', 'Police Clearance / Criminal Record Certificate'),
         ('other', 'Other'),
     ]
     job_seeker_profile = models.ForeignKey(
@@ -435,7 +438,8 @@ class VerifierProfile(models.Model):
 
 class BackgroundVerificationRequest(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending Review'),
+        ('pending', 'Requested'),
+        ('in_progress', 'Under Process'),
         ('verified', 'Verified'),
         ('rejected', 'Rejected'),
         ('flagged', 'Flagged'),
@@ -456,12 +460,14 @@ class BackgroundVerificationRequest(models.Model):
     criminal_check_status = models.CharField(max_length=20, choices=CRIMINAL_CHECK_CHOICES, default='not_checked')
     has_new_documents = models.BooleanField(default=False)
     internal_notes = models.TextField(blank=True, help_text="Visible to admin/verification team only")
+    additional_info_requested = models.TextField(blank=True, help_text="Last message sent to candidate requesting more documents")
     verified_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verification_requests_reviewed'
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     requested_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    employer_report = models.TextField(blank=True, help_text="Detailed explanation shown to the employer once completed")
 
     def __str__(self):
         return f"{self.job_application.display_full_name} - {self.job_application.job.company_name} ({self.get_status_display()})"
