@@ -12,6 +12,7 @@ from .views import create_notification
 #admin dashboard view -------------------------------------------------------------------------------------------------------
 @admin_required
 def admin_dashboard(request):
+    
     total_job_seekers = JobSeekerProfile.objects.count()
     total_employers = Profile.objects.filter(is_employer=True).count()
     context = {
@@ -66,26 +67,76 @@ def admin_job_delete(request, job_id):
     messages.success(request, f"Deleted job posting '{title}'.")
     return redirect('admin_jobs_list')
 
-#admin user list view ---------------------------------------------------------------------------------------------------------
+#admin employers list view ---------------------------------------------------------------------------------------------------------
 @admin_required
-def admin_users_list(request):
-    role = request.GET.get('role', 'seekers')
+def admin_employers_list(request):
+    query = request.GET.get('q', '').strip()
+    employers = Profile.objects.filter(is_employer=True).select_related(
+        'user', 'user__subscription', 'user__subscription__plan'
+    ).order_by('-created_at')
 
-    if role == 'employers':
-            users = Profile.objects.filter(is_employer=True).select_related(
-            'user', 'user__subscription', 'user__subscription__plan'
-        ).order_by('-created_at')
-    else:
-        users = JobSeekerProfile.objects.select_related('user').order_by('-created_at')
+    if query:
+        employers = employers.filter(
+            models.Q(company_name__icontains=query) | models.Q(user__email__icontains=query)
+        )
 
-    paginator = Paginator(users, 20)
+    paginator = Paginator(employers, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
-    return render(request, 'core/admin_panel/users_list.html', {
-        'active_tab': 'users',
+    return render(request, 'core/admin_panel/employers_list.html', {
+        'active_tab': 'employers',
         'page_obj': page_obj,
-        'role': role,
+        'query': query,
     })
 
+
+#admin job seekers list view ---------------------------------------------------------------------------------------------------------
+@admin_required
+def admin_job_seekers_list(request):
+    query = request.GET.get('q', '').strip()
+    seekers = JobSeekerProfile.objects.select_related('user').order_by('-created_at')
+
+    if query:
+        seekers = seekers.filter(
+            models.Q(full_name__icontains=query) | models.Q(user__email__icontains=query)
+        )
+
+    paginator = Paginator(seekers, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'core/admin_panel/job_seekers_list.html', {
+        'active_tab': 'job_seekers',
+        'page_obj': page_obj,
+        'query': query,
+    })
+
+
+#admin subscriptions list view ---------------------------------------------------------------------------------------------------------
+@admin_required
+def admin_subscriptions_list(request):
+    from .models import EmployerSubscription
+    query = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+
+    subscriptions = EmployerSubscription.objects.select_related('user', 'plan', 'user__profile').order_by('-started_at')
+
+    if query:
+        subscriptions = subscriptions.filter(
+            models.Q(user__profile__company_name__icontains=query) | models.Q(user__email__icontains=query)
+        )
+
+    subscriptions = list(subscriptions)
+    if status == 'active':
+        subscriptions = [s for s in subscriptions if s.is_active()]
+    elif status == 'expired':
+        subscriptions = [s for s in subscriptions if not s.is_active()]
+
+    paginator = Paginator(subscriptions, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    return render(request, 'core/admin_panel/subscriptions_list.html', {
+        'active_tab': 'subscriptions',
+        'page_obj': page_obj,
+        'query': query,
+        'status': status,
+    })
 #admin user toggle active view  ------------------------------------------------------------------------------------------------
 @admin_required
 @require_POST
@@ -93,12 +144,12 @@ def admin_user_toggle_active(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if user.is_superuser:
         messages.error(request, "Can't ban a superuser account.")
-        return redirect('admin_users_list')
+        return redirect(request.META.get('HTTP_REFERER', 'admin_dashboard'))
 
     user.is_active = not user.is_active
     user.save(update_fields=['is_active'])
     messages.success(request, f"{user.username} is now {'active' if user.is_active else 'banned'}.")
-    return redirect('admin_users_list')
+    return redirect(request.META.get('HTTP_REFERER', 'admin_dashboard'))
 
 #admin inquiries list view ---------------------------------------------------------------------------------------------------------
 @admin_required

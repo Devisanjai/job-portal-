@@ -45,6 +45,12 @@
                         {% csrf_token %}
                         <button type="submit" class="underline text-green-700">Approve</button>
                     </form>
+                    {% if job.approval_status != 'pending' %}
+                    <form method="post" action="{% url 'admin_job_set_status' job.id 'pending' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="underline text-amber-700">Mark Pending</button>
+                    </form>
+                    {% endif %}
                     {% endif %}
                     {% if job.approval_status != 'rejected' %}
                     <form method="post" action="{% url 'admin_job_set_status' job.id 'rejected' %}">

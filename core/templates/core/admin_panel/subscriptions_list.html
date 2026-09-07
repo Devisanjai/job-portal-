@@ -1,0 +1,54 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Subscriptions{% endblock %}
+{% block panel_content %}
+
+<form method="get" class="flex gap-3 mb-4">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search company or email..." class="flex-1 border rounded px-3 py-2 text-sm">
+    <select name="status" class="border rounded px-3 py-2 text-sm">
+        <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+        <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+        <option value="expired" {% if status == 'expired' %}selected{% endif %}>Expired</option>
+    </select>
+    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold text-sm">Filter</button>
+</form>
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Company</th>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Expires</th>
+                <th>Jobs Posted</th>
+                <th>Resumes Viewed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in page_obj %}
+            <tr class="border-b">
+                <td class="py-2">{{ sub.user.profile.company_name|default:sub.user.username }}</td>
+                <td>{{ sub.user.email }}</td>
+                <td>{{ sub.plan.name }}</td>
+                <td>₹{{ sub.plan.price }}</td>
+                <td>
+                    {% if sub.is_active %}<span class="text-green-700">Active</span>{% else %}<span class="text-red-700">Expired</span>{% endif %}
+                </td>
+                <td>{{ sub.expires_at|date:"d M Y" }}</td>
+                <td>{{ sub.jobs_posted_count }}</td>
+                <td>{{ sub.resumes_viewed_count }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="py-6 text-center text-gray-500">No subscriptions found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?q={{ query }}&status={{ status }}&page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?q={{ query }}&status={{ status }}&page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </div>
+</div>
+{% endblock %}
