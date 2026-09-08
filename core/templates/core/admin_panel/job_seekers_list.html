@@ -32,10 +32,16 @@
                 </td>
                 <td>{{ item.created_at|date:"d M Y" }}</td>
                 <td>
-                    <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');">
-                        {% csrf_token %}
-                        <button type="submit" class="underline text-blue-700">{% if item.user.is_active %}Ban{% else %}Unban{% endif %}</button>
-                    </form>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="underline text-blue-700">{% if item.user.is_active %}Ban{% else %}Unban{% endif %}</button>
+                        </form>
+                        <form method="post" action="{% url 'admin_job_seeker_delete' item.user.id %}" onsubmit="return confirm('Permanently delete {{ item.full_name }}? This removes their profile and documents. This cannot be undone.');">
+                            {% csrf_token %}
+                            <button type="submit" class="underline text-red-700">Remove</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% empty %}

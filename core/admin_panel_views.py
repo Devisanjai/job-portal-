@@ -378,3 +378,34 @@ def admin_verification_accept(request, verification_id):
     verification_request.save(update_fields=['status'])
     messages.success(request, 'Verification accepted and marked as Under Process.')
     return redirect('admin_verification_detail', verification_id=verification_id)
+
+#admin employer delete view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_employer_delete(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if user.is_superuser:
+        messages.error(request, "Can't delete a superuser account.")
+        return redirect('admin_employers_list')
+
+    company_name = getattr(user, 'profile', None)
+    name_for_message = company_name.company_name if company_name else user.username
+    user.delete()
+    messages.success(request, f"'{name_for_message}' has been permanently removed.")
+    return redirect('admin_employers_list')
+
+
+#admin job seeker delete view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_job_seeker_delete(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if user.is_superuser:
+        messages.error(request, "Can't delete a superuser account.")
+        return redirect('admin_job_seekers_list')
+
+    seeker_profile = getattr(user, 'jobseeker_profile', None)
+    name_for_message = seeker_profile.full_name if seeker_profile else user.username
+    user.delete()
+    messages.success(request, f"'{name_for_message}' has been permanently removed.")
+    return redirect('admin_job_seekers_list')

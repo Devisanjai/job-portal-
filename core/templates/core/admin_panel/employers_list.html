@@ -3,8 +3,10 @@
 {% block panel_content %}
 
 <form method="get" class="flex gap-3 mb-4">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search company or email..." class="flex-1 border rounded px-3 py-2 text-sm">
-    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold text-sm">Search</button>
+    <input type="text" name="q" value="{{ query }}" placeholder="Search company or email..."
+        class="flex-1 border rounded px-3 py-2 text-sm">
+    <button type="submit"
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold text-sm">Search</button>
 </form>
 
 <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
@@ -27,26 +29,40 @@
                 <td>{{ item.user.email }}</td>
                 <td>{{ item.user.subscription.plan.name|default:"—" }}</td>
                 <td>
-                    {% if item.user.is_active %}<span class="text-green-700">Active</span>{% else %}<span class="text-red-700">Banned</span>{% endif %}
+                    {% if item.user.is_active %}<span class="text-green-700">Active</span>{% else %}<span
+                        class="text-red-700">Banned</span>{% endif %}
                 </td>
                 <td>
-                    {% if item.user.subscription %}{{ item.user.subscription.resumes_viewed_count }} / {{ item.user.subscription.plan.resume_view_limit }}{% else %}—{% endif %}
+                    {% if item.user.subscription %}{{ item.user.subscription.resumes_viewed_count }} / {{
+                    item.user.subscription.plan.resume_view_limit }}{% else %}—{% endif %}
                 </td>
                 <td>{{ item.created_at|date:"d M Y" }}</td>
                 <td>
-                    <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');">
-                        {% csrf_token %}
-                        <button type="submit" class="underline text-blue-700">{% if item.user.is_active %}Ban{% else %}Unban{% endif %}</button>
-                    </form>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}"
+                            onsubmit="return confirm('Change access for {{ item.user.username }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="underline text-blue-700">{% if item.user.is_active %}Ban{% else
+                                %}Unban{% endif %}</button>
+                        </form>
+                        <form method="post" action="{% url 'admin_employer_delete' item.user.id %}"
+                            onsubmit="return confirm('Permanently delete {{ item.company_name }}? This removes all their jobs and data. This cannot be undone.');">
+                            {% csrf_token %}
+                            <button type="submit" class="underline text-red-700">Remove</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="py-6 text-center text-gray-500">No employers found.</td></tr>
+            <tr>
+                <td colspan="7" class="py-6 text-center text-gray-500">No employers found.</td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>
     <div class="mt-6 flex gap-3 text-sm">
-        {% if page_obj.has_previous %}<a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        {% if page_obj.has_previous %}<a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>{%
+        endif %}
         <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}<a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Next</a>{% endif %}
     </div>

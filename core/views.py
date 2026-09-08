@@ -179,6 +179,7 @@ def signup(request):
 from django.views.decorators.cache import never_cache
 
 #Employer Login view ---------------------------------------------------------------------------------------------------------
+
 @never_cache
 def employer_login(request):
     if request.method == 'POST':
@@ -210,6 +211,15 @@ def employer_login(request):
                         user=user_obj,
                         plan=free_plan,
                         expires_at=timezone.now() + timedelta(days=free_plan.duration_days),
+                    )
+
+                # Notify all superusers about the new employer
+                for admin_user in User.objects.filter(is_superuser=True):
+                    create_notification(
+                        user=admin_user,
+                        message=f"New employer registered: {company_name} ({email})",
+                        notification_type='general',
+                        link=reverse('admin_employers_list'),
                     )
 
                 user = authenticate(request, username=username, password=password)
