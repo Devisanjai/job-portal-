@@ -58,6 +58,12 @@
             {{ form.salary_range }}
         </div>
 
+        <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Auto-remove after</label>
+            {{ form.expiry_months }}
+            <p class="text-gray-400 text-xs mt-1">This posting is automatically hidden from job seekers once this period passes (minimum 2 months).</p>
+        </div>
+
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Skills Required</label>
             {{ form.skills_required }}
