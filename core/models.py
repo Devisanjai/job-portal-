@@ -180,6 +180,24 @@ class Inquiry(models.Model):
     def __str__(self):
         return f"{self.name} - {self.subject}"
 
+#JobAlert model ---------------------------------------------------------------------------------------------------------------
+class JobAlert(models.Model):
+    """Captured from the chatbot when no matching job was found for a query,
+    so the team can email the job seeker once a suitable opening is posted."""
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Notified', 'Notified'),
+    ]
+
+    full_name = models.CharField(max_length=200)
+    email = models.EmailField()
+    job_query = models.CharField(max_length=300, help_text="What the job seeker was looking for")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.job_query}"
+
 #Interview model ---------------------------------------------------------------------------------------------------------------
 class Interview(models.Model):
     STATUS_CHOICES = [

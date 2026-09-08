@@ -41,7 +41,7 @@ from django.http import FileResponse, HttpResponseForbidden
 from .models import BackgroundVerificationRequest, VERIFICATION_CATEGORIES
 import random
 from .models import (
-    Job, JobApplication, Inquiry, Interview,
+    Job, JobApplication, Inquiry, Interview, JobAlert,
     JobSeekerProfile, SubscriptionPlan, EmployerSubscription, ResumeUnlock, Profile,
     Notification, SavedJob, JobSeekerSignupOTP,
 )
@@ -1108,6 +1108,207 @@ def update_application_status(request, application_id):
 def inquiries(request):
     inquiries = Inquiry.objects.all().order_by('-created_at')
     return render(request, 'core/inquiries.html', {'inquiries': inquiries})
+
+
+#Chatbot helpers ---------------------------------------------------------------------------------------------------------------
+CHATBOT_STOPWORDS = {
+    'a', 'an', 'the', 'in', 'at', 'on', 'for', 'of', 'to', 'and', 'or', 'with',
+    'near', 'around', 'job', 'jobs', 'opening', 'openings', 'posting', 'postings',
+    'role', 'roles', 'position', 'positions', 'vacancy', 'vacancies', 'me', 'my',
+    'i', 'am', 'looking', 'want', 'need', 'please', 'find', 'search', 'any', 'are',
+    'is', 'there', 'available', 'do', 'you', 'have', 'some', 'get', 'give',
+}
+
+GREETINGS = {'hi', 'hello', 'hey', 'help', 'start', 'menu', 'yo', 'hola',
+             'good morning', 'good afternoon', 'good evening'}
+LATEST_JOB_PHRASES = {'latest jobs', 'show latest jobs', 'recent jobs', 'new jobs',
+                      'all jobs', 'any jobs', 'show jobs', 'available jobs',
+                      'show me jobs', 'list jobs', 'current openings', 'current jobs'}
+RESET_PHRASES = {'reset', 'restart', 'start over', 'cancel', 'no thanks', 'no', 'nope',
+                 'stop', 'search another job', 'search something else'}
+
+
+def _chatbot_is_valid_email(email):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
+
+
+def _chatbot_normalise(text):
+    return re.sub(r'[^a-zA-Z0-9\s]', ' ', text).lower().strip()
+
+
+def search_jobs_for_query(query, limit=5):
+    """Return a list of approved Job objects relevant to `query`, best matches first."""
+    normalised = _chatbot_normalise(query)
+    tokens = [t for t in normalised.split() if len(t) > 1 and t not in CHATBOT_STOPWORDS]
+    jobs = Job.objects.filter(approval_status='approved')
+
+    if tokens:
+        search_fields = ('job_title', 'skills_required', 'company_name', 'location', 'job_description')
+        scored = []
+        for job in jobs:
+            haystack = ' '.join(str(getattr(job, field) or '') for field in search_fields).lower()
+            score = sum(1 for token in tokens if token in haystack)
+            if score:
+                scored.append((score, job))
+        scored.sort(key=lambda pair: (-pair[0], -pair[1].posted_at.timestamp()))
+        return [job for _, job in scored[:limit]]
+
+    # No meaningful tokens — fall back to a whole-phrase match, then latest jobs.
+    fallback = jobs.filter(
+        Q(job_title__icontains=normalised) | Q(skills_required__icontains=normalised)
+        | Q(company_name__icontains=normalised) | Q(location__icontains=normalised)
+    ).order_by('-posted_at')[:limit]
+    if fallback:
+        return list(fallback)
+    return list(jobs.order_by('-posted_at')[:limit])
+
+
+def _chatbot_job_card(job):
+    return {
+        'id': job.id,
+        'title': job.job_title,
+        'company': job.company_name or job.posted_by.username,
+        'location': job.location,
+        'job_type': job.get_job_type_display(),
+        'experience': job.get_experience_required_display(),
+        'openings': job.number_of_openings,
+        'url': reverse('job_detail', args=[job.id]),
+    }
+
+
+def _chatbot_collect_details(request, job_query):
+    """Ask the visitor for their name/email and remember the query. Returns a JsonResponse."""
+    session = request.session
+    session['chatbot_query'] = job_query[:300]
+    session['chatbot_awaiting'] = 'name'
+
+    # Logged-in job seekers already have a name and email on file — skip the questions.
+    if request.user.is_authenticated and hasattr(request.user, 'jobseeker_profile'):
+        profile = request.user.jobseeker_profile
+        name = profile.full_name
+        email = request.user.email
+        if name and email:
+            JobAlert.objects.create(full_name=name, email=email, job_query=job_query[:300])
+            return JsonResponse({
+                'reply': (f"Thanks, {name}! I couldn't find a current opening for \"{job_query}\" right now, "
+                          f"but you're already on our alert list — we'll email you at {email} as soon as a "
+                          f"matching role is posted. Good luck! 🎉"),
+                'jobs': [],
+                'quick_replies': [{'label': 'Search another job', 'value': 'reset'}],
+            })
+
+    return JsonResponse({
+        'reply': (f"I couldn't find any current openings matching \"{job_query}\" right now. 😔 No worries — "
+                  f"share your details and we'll email you the moment a suitable job is posted. What's your full name?"),
+        'jobs': [],
+        'quick_replies': [{'label': 'No thanks, search again', 'value': 'reset'}],
+    })
+
+
+#Chatbot message endpoint -------------------------------------------------------------------------------------------------------
+@csrf_exempt
+@require_POST
+def chatbot_message(request):
+    try:
+        payload = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    message = (payload.get('message') or '').strip()
+    session = request.session
+
+    if not message:
+        return JsonResponse({
+            'reply': "I didn't catch that. Try asking about a job, e.g. \"Python developer in Chennai\".",
+            'jobs': [], 'quick_replies': [],
+        })
+
+    lowered = _chatbot_normalise(message)
+
+    # Explicit reset / cancel first.
+    if lowered in RESET_PHRASES:
+        session.pop('chatbot_awaiting', None)
+        session.pop('chatbot_query', None)
+        session.pop('chatbot_name', None)
+        return JsonResponse({
+            'reply': "Sure! Ask me about any role and I'll look for current openings, e.g. \"Frontend developer jobs\".",
+            'jobs': [], 'quick_replies': [],
+        })
+
+    # If we're mid-conversation collecting contact details, treat the message as the answer.
+    awaiting = session.get('chatbot_awaiting')
+
+    if awaiting == 'name':
+        name = message[:200]
+        if len(name) < 2:
+            return JsonResponse({
+                'reply': "That doesn't look like a name. Could you please share your full name?",
+                'jobs': [], 'quick_replies': [],
+            })
+        session['chatbot_name'] = name
+        session['chatbot_awaiting'] = 'email'
+        return JsonResponse({
+            'reply': f"Thanks, {name}! And which email address should we reach you on when a suitable opening comes up?",
+            'jobs': [], 'quick_replies': [{'label': 'Cancel', 'value': 'reset'}],
+        })
+
+    if awaiting == 'email':
+        email = message.strip()
+        if not _chatbot_is_valid_email(email):
+            return JsonResponse({
+                'reply': "That email doesn't look right. Could you please type a valid email address?",
+                'jobs': [], 'quick_replies': [{'label': 'Cancel', 'value': 'reset'}],
+            })
+        name = session.get('chatbot_name') or 'there'
+        job_query = session.get('chatbot_query') or message
+        JobAlert.objects.create(full_name=name, email=email, job_query=job_query[:300])
+        session.pop('chatbot_awaiting', None)
+        session.pop('chatbot_query', None)
+        session.pop('chatbot_name', None)
+        return JsonResponse({
+            'reply': (f"Perfect, {name}! You're on our job alert list ✅ We'll email you at {email} as soon as a "
+                      f"matching role is posted. Good luck with your search! 🎉"),
+            'jobs': [],
+            'quick_replies': [{'label': 'Search another job', 'value': 'reset'}],
+        })
+
+    # Greetings.
+    if lowered in GREETINGS or lowered.startswith(('hi ', 'hello ', 'hey ')):
+        return JsonResponse({
+            'reply': ("Hi there! 👋 I'm the Deploynix job assistant. Ask me about any role and I'll find current "
+                      "openings — for example, try \"Python developer\" or \"Graphic designer in Chennai\"."),
+            'jobs': [],
+            'quick_replies': [
+                {'label': 'Show latest jobs', 'value': 'Show latest jobs'},
+                {'label': 'Find developer jobs', 'value': 'developer jobs'},
+            ],
+        })
+
+    # "Latest jobs" style requests.
+    if lowered in LATEST_JOB_PHRASES:
+        jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')[:5]
+        return JsonResponse({
+            'reply': "Here are the most recent openings on Deploynix 👇",
+            'jobs': [_chatbot_job_card(job) for job in jobs],
+            'quick_replies': [],
+        })
+
+    # Otherwise treat the message as a job search query.
+    jobs = search_jobs_for_query(message, limit=5)
+    if jobs:
+        return JsonResponse({
+            'reply': f"Here's what I found for \"{message}\" 👇",
+            'jobs': [_chatbot_job_card(job) for job in jobs],
+            'quick_replies': [],
+        })
+
+    return _chatbot_collect_details(request, message)
 
 
 @login_required(login_url='employer_login')

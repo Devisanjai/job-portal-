@@ -2,12 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.core.mail import send_mail
+from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.urls import reverse
 from .decorators import admin_required, verifier_or_admin_required
-from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES
-from .views import create_notification
+from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES, JobAlert
+from .views import create_notification, search_jobs_for_query
 
 #admin dashboard view -------------------------------------------------------------------------------------------------------
 @admin_required
@@ -173,6 +175,79 @@ def admin_inquiry_update_status(request, inquiry_id):
         inquiry.save(update_fields=['status'])
         messages.success(request, "Inquiry status updated.")
     return redirect('admin_inquiries_list')
+
+
+#admin job alerts list view ---------------------------------------------------------------------------------------------------------
+@admin_required
+def admin_job_alerts_list(request):
+    alerts = JobAlert.objects.order_by('-created_at')
+    paginator = Paginator(alerts, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # Show how many relevant openings exist right now for each alert on the page.
+    alerts_with_matches = []
+    for alert in page_obj.object_list:
+        matches = search_jobs_for_query(alert.job_query, limit=10)
+        alerts_with_matches.append({'alert': alert, 'matches': matches})
+
+    return render(request, 'core/admin_panel/job_alerts_list.html', {
+        'active_tab': 'job_alerts',
+        'page_obj': page_obj,
+        'alerts_with_matches': alerts_with_matches,
+    })
+
+
+#admin job alert update status view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_job_alert_update_status(request, alert_id):
+    alert = get_object_or_404(JobAlert, id=alert_id)
+    new_status = request.POST.get('status')
+    if new_status in dict(JobAlert.STATUS_CHOICES):
+        alert.status = new_status
+        alert.save(update_fields=['status'])
+        messages.success(request, f"Job alert for {alert.full_name} marked as {new_status}.")
+    return redirect('admin_job_alerts_list')
+
+
+#admin job alert notify view ---------------------------------------------------------------------------------------------------------
+@admin_required
+@require_POST
+def admin_job_alert_notify(request, alert_id):
+    alert = get_object_or_404(JobAlert, id=alert_id)
+    matches = search_jobs_for_query(alert.job_query, limit=10)
+
+    if not matches:
+        messages.info(request, f"No matching jobs posted yet for \"{alert.job_query}\". Try again later.")
+        return redirect('admin_job_alerts_list')
+
+    lines = []
+    for job in matches:
+        url = request.build_absolute_uri(reverse('job_detail', args=[job.id]))
+        lines.append(f"- {job.job_title} at {job.company_name or 'a Deploynix employer'} ({job.location}) — {url}")
+
+    message_body = (
+        f"Hi {alert.full_name},\n\n"
+        f"Good news! We now have job opening(s) matching what you asked our assistant about: \"{alert.job_query}\".\n\n"
+        + "\n".join(lines) +
+        "\n\nApply soon — roles fill up fast!\n\nBest,\nTeam Deploynix"
+    )
+
+    try:
+        send_mail(
+            subject=f"Job alert: {len(matches)} new opening(s) matching \"{alert.job_query}\"",
+            message=message_body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[alert.email],
+            fail_silently=False,
+        )
+        alert.status = 'Notified'
+        alert.save(update_fields=['status'])
+        messages.success(request, f"Email with {len(matches)} matching job(s) sent to {alert.email}.")
+    except Exception as e:
+        messages.error(request, f"Could not send the email right now: {e}")
+
+    return redirect('admin_job_alerts_list')
 
 #admin verification list view ---------------------------------------------------------------------------------------------------------
 @verifier_or_admin_required

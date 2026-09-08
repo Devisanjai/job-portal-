@@ -24,6 +24,7 @@ urlpatterns = [
     path('application/<int:application_id>/status/', views.update_application_status, name='update_application_status'),
     path('application-success/<int:job_id>/', views.application_success, name='application_success'),
     path('inquiries/', views.inquiries, name='inquiries'),
+    path('chatbot/message/', views.chatbot_message, name='chatbot_message'),
     path('candidates/add/', views.add_candidate, name='add_candidate'),
     path('interview/add/', views.add_interview, name='add_interview'),
     path('profile/create/', views.create_profile, name='create_profile'),
@@ -100,4 +101,7 @@ urlpatterns = [
     path('control-panel/users/<int:user_id>/toggle-active/', admin_panel_views.admin_user_toggle_active, name='admin_user_toggle_active'),
     path('control-panel/inquiries/', admin_panel_views.admin_inquiries_list, name='admin_inquiries_list'),
     path('control-panel/inquiries/<int:inquiry_id>/update-status/', admin_panel_views.admin_inquiry_update_status, name='admin_inquiry_update_status'),
+    path('control-panel/job-alerts/', admin_panel_views.admin_job_alerts_list, name='admin_job_alerts_list'),
+    path('control-panel/job-alerts/<int:alert_id>/update-status/', admin_panel_views.admin_job_alert_update_status, name='admin_job_alert_update_status'),
+    path('control-panel/job-alerts/<int:alert_id>/notify/', admin_panel_views.admin_job_alert_notify, name='admin_job_alert_notify'),
 ]

@@ -84,6 +84,12 @@
                 <span>Inquiries</span>
             </a>
 
+            <a href="{% url 'admin_job_alerts_list' %}"
+               class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'job_alerts' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
+                <span class="text-base">🔔</span>
+                <span>Job Alerts</span>
+            </a>
+
             <a href="{% url 'admin_verifiers_list' %}"
                class="flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if active_tab == 'verifiers' %}bg-red-600 text-white font-semibold shadow-sm{% else %}text-gray-300 hover:bg-gray-900 hover:text-white{% endif %}">
                 <span class="text-base">🛂</span>

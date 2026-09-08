@@ -1,0 +1,173 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/chatbot.css' %}">
+
+<button id="chatbot-launcher" aria-label="Open job assistant chat" title="Ask about job openings">
+    <span class="chatbot-chat-icon">💬</span>
+    <span class="chatbot-close-icon">✕</span>
+</button>
+
+<div id="chatbot-window" hidden aria-live="polite">
+    <div class="chatbot-header">
+        <div class="chatbot-avatar">🤖</div>
+        <div>
+            <div class="chatbot-header-title">Deploynix Job Assistant</div>
+            <div class="chatbot-header-sub"><span class="chatbot-online"></span>Online — here to help</div>
+        </div>
+    </div>
+
+    <div id="chatbot-messages" class="chatbot-messages"></div>
+    <div id="chatbot-quick-replies" class="chatbot-quick-replies"></div>
+
+    <form id="chatbot-form" class="chatbot-inputbar" autocomplete="off">
+        <input id="chatbot-input" type="text" placeholder="Ask about a job, e.g. Python developer…" aria-label="Type your message">
+        <button type="submit" class="chatbot-send" aria-label="Send message">➤</button>
+    </form>
+</div>
+
+<script>
+(function () {
+    var CHATBOT_URL = "{% url 'chatbot_message' %}";
+    var launcher = document.getElementById('chatbot-launcher');
+    var windowEl = document.getElementById('chatbot-window');
+    var messagesEl = document.getElementById('chatbot-messages');
+    var quickRepliesEl = document.getElementById('chatbot-quick-replies');
+    var form = document.getElementById('chatbot-form');
+    var input = document.getElementById('chatbot-input');
+    var chatIcon = launcher.querySelector('.chatbot-chat-icon');
+    var closeIcon = launcher.querySelector('.chatbot-close-icon');
+    var opened = false;
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addBotHtml(html) {
+        var div = document.createElement('div');
+        div.className = 'chatbot-msg bot';
+        div.innerHTML = html;
+        messagesEl.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addUserText(text) {
+        var div = document.createElement('div');
+        div.className = 'chatbot-msg user';
+        div.textContent = text;
+        messagesEl.appendChild(div);
+        scrollToBottom();
+    }
+
+    function renderJobs(jobs) {
+        if (!jobs || !jobs.length) return '';
+        var html = '<div class="chatbot-jobs">';
+        jobs.forEach(function (job) {
+            html += '<a class="chatbot-job-card" href="' + escapeHtml(job.url) + '" target="_blank" rel="noopener">' +
+                '<div class="chatbot-job-title">' + escapeHtml(job.title) + '</div>' +
+                '<div class="chatbot-job-company">' + escapeHtml(job.company) + '</div>' +
+                '<div class="chatbot-job-meta">📍 ' + escapeHtml(job.location) +
+                ' &nbsp;•&nbsp; 💼 ' + escapeHtml(job.job_type) +
+                ' &nbsp;•&nbsp; 🎓 ' + escapeHtml(job.experience) +
+                ' &nbsp;•&nbsp; ' + job.openings + ' opening' + (job.openings === 1 ? '' : 's') + '</div>' +
+                '<div class="chatbot-job-cta">View &amp; Apply →</div>' +
+                '</a>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function renderQuickReplies(replies) {
+        quickRepliesEl.innerHTML = '';
+        if (!replies || !replies.length) return;
+        replies.forEach(function (r) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chatbot-quick-btn';
+            btn.textContent = r.label;
+            btn.addEventListener('click', function () { sendMessage(r.value); });
+            quickRepliesEl.appendChild(btn);
+        });
+    }
+
+    function showTyping() {
+        var div = document.createElement('div');
+        div.className = 'chatbot-typing';
+        div.innerHTML = '<span></span><span></span><span></span>';
+        div.id = 'chatbot-typing';
+        messagesEl.appendChild(div);
+        scrollToBottom();
+    }
+
+    function hideTyping() {
+        var typing = document.getElementById('chatbot-typing');
+        if (typing) typing.remove();
+    }
+
+    function sendMessage(text) {
+        text = (text || '').trim();
+        if (!text) return;
+        addUserText(text);
+        renderQuickReplies([]);
+        showTyping();
+
+        fetch(CHATBOT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ message: text })
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            hideTyping();
+            var html = escapeHtml(data.reply || '') + renderJobs(data.jobs);
+            addBotHtml(html);
+            renderQuickReplies(data.quick_replies || []);
+        })
+        .catch(function () {
+            hideTyping();
+            addBotHtml("Sorry, I ran into a problem. Please try again in a moment.");
+        });
+    }
+
+    function showGreeting() {
+        addBotHtml("Hi there! 👋 I'm the <b>Deploynix job assistant</b>. Ask me about any role and I'll find current openings — for example, try \"Python developer\" or \"Graphic designer in Chennai\".");
+        renderQuickReplies([
+            { label: 'Show latest jobs', value: 'Show latest jobs' },
+            { label: 'Find developer jobs', value: 'developer jobs' }
+        ]);
+    }
+
+    function openWindow() {
+        windowEl.hidden = false;
+        chatIcon.style.display = 'none';
+        closeIcon.style.display = 'block';
+        if (!opened) {
+            opened = true;
+            showGreeting();
+        }
+        input.focus();
+    }
+
+    function closeWindow() {
+        windowEl.hidden = true;
+        chatIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+    }
+
+    launcher.addEventListener('click', function () {
+        windowEl.hidden ? openWindow() : closeWindow();
+    });
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var value = input.value;
+        input.value = '';
+        sendMessage(value);
+    });
+})();
+</script>

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import AdminLoginOTP
 from .models import (
-    Profile, Job, JobApplication, JobSeekerProfile, Inquiry, Interview,
+    Profile, Job, JobApplication, JobSeekerProfile, Inquiry, Interview, JobAlert,
     SubscriptionPlan, EmployerSubscription, ResumeUnlock, Notification,
     SavedJob, JobSeekerSignupOTP,VerificationDocument, BackgroundVerification
 )
@@ -43,6 +43,15 @@ class InquiryAdmin(admin.ModelAdmin):
     list_display = ('name', 'subject', 'status', 'email', 'created_at')
     list_filter = ('status',)
     search_fields = ('name', 'email', 'subject')
+
+#JobAlertAdmin ---------------------------------------------------------------------------------------------------------------
+@admin.register(JobAlert)
+class JobAlertAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'email', 'job_query', 'status', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('full_name', 'email', 'job_query')
+    list_editable = ('status',)
+    date_hierarchy = 'created_at'
 
 #InterviewAdmin ---------------------------------------------------------------------------------------------------------------
 @admin.register(Interview)

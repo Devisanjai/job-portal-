@@ -1,0 +1,75 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Job Alerts{% endblock %}
+{% block panel_content %}
+
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+    <p class="text-sm text-gray-500 mb-4">
+        Job seekers who asked the chatbot about a role we don't currently have. When a matching job is
+        posted, send them an email right from here.
+    </p>
+
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Name</th>
+                <th>Email</th>
+                <th>Looking for</th>
+                <th>Matches now</th>
+                <th>Status</th>
+                <th>Received</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in alerts_with_matches %}
+            {% with alert=item.alert matches=item.matches %}
+            <tr class="border-b align-top">
+                <td class="py-2 font-medium">{{ alert.full_name }}</td>
+                <td>{{ alert.email }}</td>
+                <td class="max-w-xs">{{ alert.job_query }}</td>
+                <td>
+                    {% if matches %}
+                        <span class="inline-block bg-green-50 text-green-700 text-xs font-semibold px-2 py-1 rounded-full border border-green-200">
+                            {{ matches|length }} match{{ matches|length|pluralize:"es" }}
+                        </span>
+                    {% else %}
+                        <span class="text-xs text-gray-400">None yet</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{% url 'admin_job_alert_update_status' alert.id %}">
+                        {% csrf_token %}
+                        <select name="status" onchange="this.form.submit()" class="border rounded px-1 py-0.5 text-xs">
+                            {% for value, label in alert.STATUS_CHOICES %}
+                                <option value="{{ value }}" {% if alert.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>{{ alert.created_at|date:"d M Y" }}</td>
+                <td>
+                    <form method="post" action="{% url 'admin_job_alert_notify' alert.id %}">
+                        {% csrf_token %}
+                        <button type="submit"
+                                {% if not matches %}disabled{% endif %}
+                                class="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-1.5 rounded">
+                            {% if matches %}✉ Email matches{% else %}Awaiting jobs{% endif %}
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr><td colspan="7" class="py-6 text-center text-gray-500">No job alert requests yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="mt-6 flex gap-3 text-sm">
+        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+    </div>
+</div>
+
+{% endblock %}
