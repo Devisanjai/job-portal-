@@ -98,6 +98,7 @@ urlpatterns = [
     path('control-panel/jobs/<int:job_id>/set-status/<str:status>/', admin_panel_views.admin_job_set_status, name='admin_job_set_status'),
     path('control-panel/jobs/<int:job_id>/delete/', admin_panel_views.admin_job_delete, name='admin_job_delete'),
     path('control-panel/employers/', admin_panel_views.admin_employers_list, name='admin_employers_list'),
+    path('control-panel/employers/<int:employer_id>/', admin_panel_views.admin_employer_detail, name='admin_employer_detail'),
     path('control-panel/job-seekers/', admin_panel_views.admin_job_seekers_list, name='admin_job_seekers_list'),
     path('control-panel/subscriptions/', admin_panel_views.admin_subscriptions_list, name='admin_subscriptions_list'),
     path('control-panel/users/<int:user_id>/toggle-active/', admin_panel_views.admin_user_toggle_active, name='admin_user_toggle_active'),

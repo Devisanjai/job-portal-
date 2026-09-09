@@ -3,7 +3,7 @@
 {% block panel_content %}
 
 <form method="get" class="flex gap-3 mb-4">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search company or email..." class="flex-1 border rounded px-3 py-2 text-sm">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search company, username, or email..." class="flex-1 border rounded px-3 py-2 text-sm">
     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-semibold text-sm">Search</button>
 </form>
 
@@ -12,9 +12,11 @@
         <thead>
             <tr class="border-b text-left">
                 <th class="py-2">Company</th>
-                <th>Email</th>
+                <th>Last Login</th>
                 <th>Plan</th>
                 <th>Status</th>
+                <th>Jobs Posted</th>
+                <th>Applicants</th>
                 <th>Resumes Viewed</th>
                 <th>Joined</th>
                 <th>Action</th>
@@ -22,26 +24,56 @@
         </thead>
         <tbody>
             {% for item in page_obj %}
-            <tr class="border-b">
-                <td class="py-2">{{ item.company_name }}</td>
-                <td>{{ item.user.email }}</td>
-                <td>{{ item.user.subscription.plan.name|default:"—" }}</td>
-                <td>
-                    {% if item.user.is_active %}<span class="text-green-700">Active</span>{% else %}<span class="text-red-700">Banned</span>{% endif %}
+            <tr class="border-b align-top">
+                <td class="py-2">
+                    <a href="{% url 'admin_employer_detail' item.id %}" class="font-semibold text-red-600 hover:underline">
+                        {{ item.company_name|default:item.user.username }}
+                    </a>
+                    <div class="text-xs text-gray-400">{{ item.user.email }}</div>
                 </td>
                 <td>
-                    {% if item.user.subscription %}{{ item.user.subscription.resumes_viewed_count }} / {{ item.user.subscription.plan.resume_view_limit }}{% else %}—{% endif %}
+                    {% if item.user.last_login %}
+                        {{ item.user.last_login|date:"d M Y" }}<br><span class="text-xs text-gray-400">{{ item.user.last_login|date:"h:i A" }}</span>
+                    {% else %}
+                        <span class="text-gray-400">Never</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.user.subscription %}
+                        {{ item.user.subscription.plan.name|default:"—" }}
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if not item.user.is_active %}
+                        <span class="text-red-700 font-semibold">Banned</span>
+                    {% elif item.user.subscription %}
+                        {% if item.user.subscription.is_active %}
+                            <span class="text-green-700 font-semibold">Active</span>
+                        {% else %}
+                            <span class="text-amber-600 font-semibold">Plan Expired</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-amber-600 font-semibold">No Plan</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.jobs_count }}</td>
+                <td>{{ item.applicants_count }}</td>
+                <td>
+                    {% if item.user.subscription %}
+                        {{ item.user.subscription.resumes_viewed_count }} / {{ item.user.subscription.plan.resume_view_limit }}
+                    {% else %}—{% endif %}
                 </td>
                 <td>{{ item.created_at|date:"d M Y" }}</td>
                 <td>
-                    <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');">
+                    <a href="{% url 'admin_employer_detail' item.id %}" class="underline text-blue-700">View Details</a>
+                    <form method="post" action="{% url 'admin_user_toggle_active' item.user.id %}" onsubmit="return confirm('Change access for {{ item.user.username }}?');" class="mt-1">
                         {% csrf_token %}
-                        <button type="submit" class="underline text-blue-700">{% if item.user.is_active %}Ban{% else %}Unban{% endif %}</button>
+                        <button type="submit" class="underline text-red-600">{% if item.user.is_active %}Ban{% else %}Unban{% endif %}</button>
                     </form>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="py-6 text-center text-gray-500">No employers found.</td></tr>
+            <tr><td colspan="9" class="py-6 text-center text-gray-500">No employers found.</td></tr>
             {% endfor %}
         </tbody>
     </table>
