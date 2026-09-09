@@ -106,4 +106,7 @@ urlpatterns = [
     path('control-panel/job-alerts/<int:alert_id>/notify/', admin_panel_views.admin_job_alert_notify, name='admin_job_alert_notify'),
     path('control-panel/employers/<int:user_id>/delete/', admin_panel_views.admin_employer_delete, name='admin_employer_delete'),
     path('control-panel/job-seekers/<int:user_id>/delete/', admin_panel_views.admin_job_seeker_delete, name='admin_job_seeker_delete'),
+    path('bgv-plans/', views.bgv_plans, name='bgv_plans'),
+    path('bgv-plans/<int:plan_id>/order/', views.create_bgv_razorpay_order, name='create_bgv_razorpay_order'),
+    path('bgv-plans/verify/', views.verify_bgv_payment, name='verify_bgv_payment'),
 ]

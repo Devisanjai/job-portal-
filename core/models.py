@@ -46,6 +46,7 @@ class Profile(models.Model):
     state = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_email_verified = models.BooleanField(default=False)
+    free_bgv_used_count = models.PositiveIntegerField(default=0, help_text="Lifetime count of free background verifications used")
 
     def __str__(self):
         return self.user.username
@@ -489,3 +490,33 @@ class BackgroundVerificationRequest(models.Model):
 
     def __str__(self):
         return f"{self.job_application.display_full_name} - {self.job_application.job.company_name} ({self.get_status_display()})"
+
+
+class BackgroundVerificationPlan(models.Model):
+    name = models.CharField(max_length=50)
+    price = models.PositiveIntegerField(help_text="Price in INR")
+    duration_days = models.PositiveIntegerField(default=30)
+    candidate_limit = models.PositiveIntegerField()
+    includes_criminal_address = models.BooleanField(
+        default=False, help_text="Whether criminal record and address verification are included"
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class EmployerBGVSubscription(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='bgv_subscription')
+    plan = models.ForeignKey(BackgroundVerificationPlan, on_delete=models.PROTECT)
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    candidates_verified_count = models.PositiveIntegerField(default=0)
+
+    def is_active(self):
+        return timezone.now() < self.expires_at
+
+    def can_verify_more(self):
+        return self.is_active() and self.candidates_verified_count < self.plan.candidate_limit
+
+    def __str__(self):
+        return f"{self.user.username} - {self.plan.name}"
