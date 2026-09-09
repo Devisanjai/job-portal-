@@ -13,12 +13,15 @@
 
     {% if jobs %}
     {% for job in jobs %}
-   <div class="job-list-card" style="text-decoration: none;">
+   <div class="job-list-card" style="text-decoration: none; opacity: {% if job.is_active %}1{% else %}0.75{% endif %};">
     <a href="{% url 'job_detail' job.id %}" style="text-decoration: none; color: inherit; flex: 1;">
         <div class="job-list-title">{{ job.job_title }}</div>
         <div class="job-list-meta">{{ job.location }} • {{ job.get_job_type_display }} • {{ job.get_experience_required_display }}</div>
+        <div class="job-list-meta" style="font-size: 0.78rem; color: #9ca3af; margin-top: 0.25rem;">
+            Expires {{ job.expires_at|date:"d M Y" }}
+        </div>
     </a>
-    <div style="display: flex; align-items: center; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: flex-end;">
         {% if job.approval_status == 'approved' %}
             <span style="background: #dcfce7; color: #15803d; padding: 0.35rem 0.9rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">Approved</span>
         {% elif job.approval_status == 'rejected' %}
@@ -26,10 +29,35 @@
         {% else %}
             <span style="background: #fef3c7; color: #b45309; padding: 0.35rem 0.9rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">Waiting for Approval</span>
         {% endif %}
+
+        {% if job.is_active and not job.is_expired %}
+            <span style="background: #dcfce7; color: #15803d; padding: 0.35rem 0.9rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">Active</span>
+        {% else %}
+            <span style="background: #fee2e2; color: #b91c1c; padding: 0.35rem 0.9rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600;">{{ job.status_label }}</span>
+        {% endif %}
+
         <span class="job-list-openings">{{ job.number_of_openings }} Opening{{ job.number_of_openings|pluralize }}</span>
+
+        {% if job.is_active and not job.is_expired %}
         <a href="{% url 'edit_job' job.id %}" class="dashboard-btn" style="background: #1f2937; padding: 0.5rem 1.2rem; font-size: 0.85rem; text-decoration: none;">
             Edit
         </a>
+        <form method="post" action="{% url 'mark_job_filled' job.id %}"
+              onsubmit="return confirm('Mark this position as filled? It will be hidden from job seekers (records are kept).');">
+            {% csrf_token %}
+            <button type="submit" class="dashboard-btn" style="background: #15803d; padding: 0.5rem 1.2rem; font-size: 0.85rem;">
+                Mark as Filled
+            </button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'reactivate_job' job.id %}">
+            {% csrf_token %}
+            <button type="submit" class="dashboard-btn" style="background: #15803d; padding: 0.5rem 1.2rem; font-size: 0.85rem;">
+                Reactivate
+            </button>
+        </form>
+        {% endif %}
+
         <form method="post" action="{% url 'delete_job' job.id %}"
               onsubmit="return confirm('Remove this job posting? This will also delete all applications submitted for it. This cannot be undone.');">
             {% csrf_token %}

@@ -1,0 +1,161 @@
+{% extends 'core/admin_panel/admin_base.html' %}
+{% block page_heading %}Employer Details{% endblock %}
+{% block panel_content %}
+
+<div class="mb-4">
+    <a href="{% url 'admin_employers_list' %}" class="text-sm text-red-600 hover:underline">← Back to Employers</a>
+</div>
+
+<!-- Company header -->
+<div class="border-2 border-gray-800 rounded-lg bg-white p-6 mb-5 flex items-start gap-5">
+    <div class="w-20 h-20 rounded-lg bg-black text-white flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden">
+        {% if employer.logo %}
+            <img src="{{ employer.logo.url }}" alt="Logo" class="w-full h-full object-cover">
+        {% else %}
+            {{ employer.company_name|default:user.username|slice:":1"|upper }}
+        {% endif %}
+    </div>
+    <div class="flex-1">
+        <h2 class="text-2xl font-bold">{{ employer.company_name|default:user.username }}</h2>
+        <p class="text-sm text-gray-500">{{ user.email }} &nbsp;•&nbsp; @{{ user.username }}</p>
+        <div class="flex flex-wrap gap-2 mt-3 text-xs font-semibold">
+            {% if not user.is_active %}
+                <span class="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full">Banned</span>
+            {% else %}
+                <span class="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded-full">Account Active</span>
+            {% endif %}
+            {% if employer.is_email_verified %}
+                <span class="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded-full">Email Verified</span>
+            {% else %}
+                <span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full">Email Not Verified</span>
+            {% endif %}
+            {% if subscription %}
+                {% if subscription.is_active %}
+                    <span class="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded-full">Plan Active</span>
+                {% else %}
+                    <span class="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded-full">Plan Expired</span>
+                {% endif %}
+            {% else %}
+                <span class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full">No Subscription</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <!-- Account & login -->
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3 border-b pb-2">Account &amp; Login</h3>
+        <dl class="text-sm space-y-2">
+            <div class="flex justify-between"><dt class="text-gray-500">Joined</dt><dd>{{ user.date_joined|date:"d M Y, h:i A" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Last Login</dt><dd>{% if user.last_login %}{{ user.last_login|date:"d M Y, h:i A" }}{% else %}Never logged in{% endif %}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Phone</dt><dd>{{ employer.phone|default:"—" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Website</dt><dd>{% if employer.website %}<a href="{{ employer.website }}" class="text-red-600 hover:underline">{{ employer.website }}</a>{% else %}—{% endif %}</dd></div>
+        </dl>
+    </div>
+
+    <!-- Company info -->
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3 border-b pb-2">Company Information</h3>
+        <dl class="text-sm space-y-2">
+            <div class="flex justify-between"><dt class="text-gray-500">Industry</dt><dd>{{ employer.industry|default:"—" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Company Size</dt><dd>{{ employer.get_company_size_display|default:"—" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Founded</dt><dd>{{ employer.founded_year|default:"—" }}</dd></div>
+            <div class="flex justify-between"><dt class="text-gray-500">Location</dt><dd>{% if employer.city or employer.state %}{{ employer.city }}{% if employer.city and employer.state %}, {% endif %}{{ employer.state }}{% else %}—{% endif %}</dd></div>
+        </dl>
+        {% if employer.about %}
+        <p class="text-sm text-gray-600 mt-3">{{ employer.about }}</p>
+        {% endif %}
+        {% if employer.address %}
+        <p class="text-xs text-gray-400 mt-2">📌 {{ employer.address }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Subscription -->
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3 border-b pb-2">Subscription Plan</h3>
+        {% if subscription %}
+            <dl class="text-sm space-y-2">
+                <div class="flex justify-between"><dt class="text-gray-500">Plan</dt><dd class="font-semibold">{{ subscription.plan.name }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Price</dt><dd>₹{{ subscription.plan.price }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Status</dt><dd>{% if subscription.is_active %}<span class="text-green-700 font-semibold">Active</span>{% else %}<span class="text-red-700 font-semibold">Expired</span>{% endif %}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Started</dt><dd>{{ subscription.started_at|date:"d M Y" }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Expires</dt><dd>{{ subscription.expires_at|date:"d M Y" }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Job Post Limit</dt><dd>{{ subscription.plan.job_post_limit }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Resume View Limit</dt><dd>{{ subscription.plan.resume_view_limit }}</dd></div>
+            </dl>
+        {% else %}
+            <p class="text-sm text-gray-500">This employer has no subscription plan.</p>
+        {% endif %}
+    </div>
+
+    <!-- Stats -->
+    <div class="border-2 border-gray-800 rounded-lg bg-white p-5">
+        <h3 class="font-bold mb-3 border-b pb-2">Activity</h3>
+        <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="bg-gray-50 border rounded-lg p-4">
+                <div class="text-3xl font-bold">{{ total_jobs }}</div>
+                <div class="text-xs text-gray-500 mt-1">Jobs Posted</div>
+            </div>
+            <div class="bg-gray-50 border rounded-lg p-4">
+                <div class="text-3xl font-bold">{{ total_applicants }}</div>
+                <div class="text-xs text-gray-500 mt-1">Total Applicants</div>
+            </div>
+            <div class="bg-gray-50 border rounded-lg p-4">
+                <div class="text-3xl font-bold">{{ resumes_viewed }}</div>
+                <div class="text-xs text-gray-500 mt-1">Resumes Viewed</div>
+            </div>
+            <div class="bg-gray-50 border rounded-lg p-4">
+                <div class="text-3xl font-bold">{{ resumes_unlocked }}</div>
+                <div class="text-xs text-gray-500 mt-1">Resumes Unlocked</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Jobs posted -->
+<div class="border-2 border-gray-800 rounded-lg bg-white p-5 mt-5">
+    <h3 class="font-bold mb-3 border-b pb-2">Jobs Posted ({{ total_jobs }})</h3>
+    {% if jobs %}
+    <table class="w-full text-sm border-collapse">
+        <thead>
+            <tr class="border-b text-left">
+                <th class="py-2">Job Title</th>
+                <th>Location</th>
+                <th>Approval</th>
+                <th>Status</th>
+                <th>Applicants</th>
+                <th>Posted</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr class="border-b">
+                <td class="py-2 font-medium">{{ job.job_title }}</td>
+                <td>{{ job.location }}</td>
+                <td>
+                    {% if job.approval_status == 'approved' %}
+                        <span class="text-green-700">Approved</span>
+                    {% elif job.approval_status == 'rejected' %}
+                        <span class="text-red-700">Rejected</span>
+                    {% else %}
+                        <span class="text-amber-600">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not job.is_active %}<span class="text-red-700">Hidden ({{ job.status_label }})</span>
+                    {% elif job.is_expired %}<span class="text-amber-600">Expired</span>
+                    {% else %}<span class="text-green-700">Live</span>{% endif %}
+                </td>
+                <td>{{ job.applicant_count }}</td>
+                <td>{{ job.posted_at|date:"d M Y" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p class="text-sm text-gray-500">This employer hasn't posted any jobs yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

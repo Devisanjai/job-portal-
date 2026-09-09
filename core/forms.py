@@ -80,7 +80,7 @@ class JobSeekerProfileForm(forms.ModelForm):
 class JobPostForm(forms.ModelForm):
     class Meta:
         model = Job
-        fields = ['job_title', 'company_name', 'job_description', 'experience_required', 'job_type', 'location', 'number_of_openings', 'salary_range', 'skills_required']
+        fields = ['job_title', 'company_name', 'job_description', 'experience_required', 'job_type', 'location', 'number_of_openings', 'salary_range', 'skills_required', 'expiry_months']
         widgets = {
             'job_title': forms.TextInput(attrs={
                 'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
@@ -117,6 +117,15 @@ class JobPostForm(forms.ModelForm):
                 'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400',
                 'placeholder': 'e.g. Python, Django, React'
             }),
+            'expiry_months': forms.Select(attrs={
+                'class': 'w-full border-2 border-gray-400 rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400'
+            }),
+        }
+        labels = {
+            'expiry_months': 'Auto-remove after',
+        }
+        help_texts = {
+            'expiry_months': 'The posting is automatically hidden once this period passes. Minimum 2 months.',
         }
 
 

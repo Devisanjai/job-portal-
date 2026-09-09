@@ -4,11 +4,12 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Q, Count
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.urls import reverse
 from .decorators import admin_required, verifier_or_admin_required
-from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES, JobAlert
+from .models import Job, JobApplication, Inquiry, Profile, JobSeekerProfile, BackgroundVerification, VerifierProfile, BackgroundVerificationRequest, VERIFICATION_CATEGORIES, JobAlert, EmployerSubscription, ResumeUnlock
 from .views import create_notification, search_jobs_for_query
 
 #admin dashboard view -------------------------------------------------------------------------------------------------------
@@ -75,11 +76,14 @@ def admin_employers_list(request):
     query = request.GET.get('q', '').strip()
     employers = Profile.objects.filter(is_employer=True).select_related(
         'user', 'user__subscription', 'user__subscription__plan'
+    ).annotate(
+        jobs_count=Count('user__posted_jobs', distinct=True),
+        applicants_count=Count('user__posted_jobs__applications', distinct=True),
     ).order_by('-created_at')
 
     if query:
         employers = employers.filter(
-            models.Q(company_name__icontains=query) | models.Q(user__email__icontains=query)
+            Q(company_name__icontains=query) | Q(user__email__icontains=query) | Q(user__username__icontains=query)
         )
 
     paginator = Paginator(employers, 20)
@@ -91,6 +95,36 @@ def admin_employers_list(request):
     })
 
 
+#admin employer detail view ---------------------------------------------------------------------------------------------------------
+@admin_required
+def admin_employer_detail(request, employer_id):
+    employer = get_object_or_404(Profile.objects.select_related(
+        'user', 'user__subscription', 'user__subscription__plan'
+    ), id=employer_id, is_employer=True)
+
+    user = employer.user
+    subscription = getattr(user, 'subscription', None)
+
+    jobs = Job.objects.filter(posted_by=user).annotate(
+        applicant_count=Count('applications', distinct=True),
+    ).order_by('-posted_at')
+
+    total_applicants = JobApplication.objects.filter(job__posted_by=user).count()
+    resumes_unlocked = ResumeUnlock.objects.filter(employer=user).count()
+
+    return render(request, 'core/admin_panel/employer_detail.html', {
+        'active_tab': 'employers',
+        'employer': employer,
+        'user': user,
+        'subscription': subscription,
+        'jobs': jobs,
+        'total_jobs': jobs.count(),
+        'total_applicants': total_applicants,
+        'resumes_viewed': subscription.resumes_viewed_count if subscription else resumes_unlocked,
+        'resumes_unlocked': resumes_unlocked,
+    })
+
+
 #admin job seekers list view ---------------------------------------------------------------------------------------------------------
 @admin_required
 def admin_job_seekers_list(request):
@@ -99,7 +133,7 @@ def admin_job_seekers_list(request):
 
     if query:
         seekers = seekers.filter(
-            models.Q(full_name__icontains=query) | models.Q(user__email__icontains=query)
+            Q(full_name__icontains=query) | Q(user__email__icontains=query)
         )
 
     paginator = Paginator(seekers, 20)
@@ -114,7 +148,6 @@ def admin_job_seekers_list(request):
 #admin subscriptions list view ---------------------------------------------------------------------------------------------------------
 @admin_required
 def admin_subscriptions_list(request):
-    from .models import EmployerSubscription
     query = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
 
@@ -122,7 +155,7 @@ def admin_subscriptions_list(request):
 
     if query:
         subscriptions = subscriptions.filter(
-            models.Q(user__profile__company_name__icontains=query) | models.Q(user__email__icontains=query)
+            Q(user__profile__company_name__icontains=query) | Q(user__email__icontains=query)
         )
 
     subscriptions = list(subscriptions)
