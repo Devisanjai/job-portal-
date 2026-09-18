@@ -179,6 +179,7 @@ def signup(request):
 from django.views.decorators.cache import never_cache
 
 #Employer Login view ---------------------------------------------------------------------------------------------------------
+
 @never_cache
 def employer_login(request):
     if request.method == 'POST':
@@ -210,6 +211,15 @@ def employer_login(request):
                         user=user_obj,
                         plan=free_plan,
                         expires_at=timezone.now() + timedelta(days=free_plan.duration_days),
+                    )
+
+                # Notify all superusers about the new employer
+                for admin_user in User.objects.filter(is_superuser=True):
+                    create_notification(
+                        user=admin_user,
+                        message=f"New employer registered: {company_name} ({email})",
+                        notification_type='general',
+                        link=reverse('admin_employers_list'),
                     )
 
                 user = authenticate(request, username=username, password=password)
@@ -1442,6 +1452,82 @@ def subscription_plans(request):
     })
 
 
+
+#Background Verification Plans view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='employer_login')
+def bgv_plans(request):
+    from .models import BackgroundVerificationPlan
+    plans = BackgroundVerificationPlan.objects.all().order_by('price')
+    current_bgv_sub = getattr(request.user, 'bgv_subscription', None)
+    profile = getattr(request.user, 'profile', None)
+    free_bgv_used = profile.free_bgv_used_count if profile else 0
+    free_bgv_remaining = max(0, 3 - free_bgv_used)
+
+    return render(request, 'core/bgv_plans.html', {
+        'plans': plans,
+        'current_bgv_sub': current_bgv_sub,
+        'free_bgv_remaining': free_bgv_remaining,
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+    })
+
+
+#Create Razorpay Order for BGV Plan view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='employer_login')
+@require_POST
+def create_bgv_razorpay_order(request, plan_id):
+    from .models import BackgroundVerificationPlan, EmployerBGVSubscription
+    plan = get_object_or_404(BackgroundVerificationPlan, id=plan_id)
+
+    amount_paise = plan.price * 100
+    order = razorpay_client.order.create({
+        'amount': amount_paise,
+        'currency': 'INR',
+        'payment_capture': 1,
+        'notes': {'bgv_plan_id': plan.id, 'user_id': request.user.id},
+    })
+
+    return JsonResponse({
+        'order_id': order['id'],
+        'amount': amount_paise,
+        'key_id': settings.RAZORPAY_KEY_ID,
+        'plan_name': plan.name,
+        'user_email': request.user.email,
+    })
+
+
+#Verify Razorpay Payment for BGV Plan view ---------------------------------------------------------------------------------------------------------
+@csrf_exempt
+@login_required(login_url='employer_login')
+@require_POST
+def verify_bgv_payment(request):
+    from .models import BackgroundVerificationPlan, EmployerBGVSubscription
+    data = json.loads(request.body)
+    plan_id = data.get('plan_id')
+
+    params_dict = {
+        'razorpay_order_id': data.get('razorpay_order_id'),
+        'razorpay_payment_id': data.get('razorpay_payment_id'),
+        'razorpay_signature': data.get('razorpay_signature'),
+    }
+
+    try:
+        razorpay_client.utility.verify_payment_signature(params_dict)
+    except razorpay.errors.SignatureVerificationError:
+        return JsonResponse({'success': False, 'error': 'Signature verification failed'}, status=400)
+
+    plan = BackgroundVerificationPlan.objects.get(id=plan_id)
+    EmployerBGVSubscription.objects.update_or_create(
+        user=request.user,
+        defaults={
+            'plan': plan,
+            'expires_at': timezone.now() + timedelta(days=plan.duration_days),
+            'candidates_verified_count': 0,
+        }
+    )
+
+    return JsonResponse({'success': True, 'redirect': reverse('bgv_plans')})
+
+
 @login_required(login_url='employer_login')
 @require_POST
 def create_razorpay_order(request, plan_id):
@@ -1868,6 +1954,7 @@ def verifier_login(request):
     return render(request, 'core/verifier_login.html', {'error': error})
 
 #request background verification view ---------------------------------------------------------------------------------------------------------
+#request background verification view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='employer_login')
 @require_POST
 def request_background_verification(request, application_id):
@@ -1881,10 +1968,20 @@ def request_background_verification(request, application_id):
         messages.warning(request, 'Background verification can only be requested for shortlisted or hired candidates.')
         return redirect('candidate_detail', application_id=application.id)
 
-    subscription = getattr(request.user, 'subscription', None)
-    if not subscription or not subscription.plan.includes_bgv_access:
-        messages.warning(request, "Background verification isn't included in your current plan. Upgrade to request verification.")
-        return redirect('subscription_plans')
+    FREE_BGV_LIMIT = 3
+    profile = getattr(request.user, 'profile', None)
+    used_free_allowance = False
+
+    if profile and profile.free_bgv_used_count < FREE_BGV_LIMIT:
+        used_free_allowance = True
+    else:
+        bgv_subscription = getattr(request.user, 'bgv_subscription', None)
+        if not bgv_subscription or not bgv_subscription.can_verify_more():
+            messages.warning(
+                request,
+                "You've used your 3 free background verifications. Purchase a plan to verify more candidates."
+            )
+            return redirect('bgv_plans')
 
     verification_request, created = BackgroundVerificationRequest.objects.get_or_create(
         job_application=application,
@@ -1892,6 +1989,13 @@ def request_background_verification(request, application_id):
     )
 
     if created:
+        if used_free_allowance and profile:
+            profile.free_bgv_used_count += 1
+            profile.save(update_fields=['free_bgv_used_count'])
+        elif not used_free_allowance:
+            bgv_subscription.candidates_verified_count += 1
+            bgv_subscription.save(update_fields=['candidates_verified_count'])
+
         if application.job_seeker_profile:
             create_notification(
                 user=application.job_seeker_profile.user,

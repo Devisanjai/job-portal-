@@ -1,0 +1,110 @@
+{% extends 'core/dashboard_base.html' %}
+{% load static %}
+{% block title %}Background Verification Plans - Deploynix{% endblock %}
+{% block content %}
+
+<div class="dashboard-wrap">
+    <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Background Verification Plans</h2>
+    <p style="color: #6b7280; margin-bottom: 1.5rem;">
+        Verify candidate identity, education, employment, criminal records, and address.
+    </p>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="bg-amber-50 text-amber-700 border border-amber-200 text-sm p-3 rounded mb-4">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="border-2 border-gray-800 rounded-lg p-5 mb-6" style="background: #f0fdf4;">
+        <p style="font-weight: 600;">Free Allowance: {{ free_bgv_remaining }} of 3 remaining</p>
+        <p style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">
+            Every company gets 3 free background verifications (ID, education, employment history) for life. Criminal and address verification require a paid plan.
+        </p>
+    </div>
+
+    {% if current_bgv_sub %}
+    <div class="border-2 border-gray-800 rounded-lg p-5 mb-6 bg-white">
+        <p style="font-weight: 600;">Current Plan: {{ current_bgv_sub.plan.name }}</p>
+        <p style="color: #6b7280; font-size: 0.85rem;">
+            {{ current_bgv_sub.candidates_verified_count }} / {{ current_bgv_sub.plan.candidate_limit }} candidates used ·
+            Expires {{ current_bgv_sub.expires_at|date:"d M Y" }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
+        {% for plan in plans %}
+        <div class="border-2 border-gray-800 rounded-lg p-6 bg-white">
+            <h3 style="font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem;">{{ plan.name }}</h3>
+            <p style="font-size: 1.8rem; font-weight: bold; margin-bottom: 1rem;">₹{{ plan.price }}
+                <span style="font-size: 0.85rem; font-weight: normal; color: #6b7280;">/ {{ plan.duration_days }} days</span>
+            </p>
+            <ul style="font-size: 0.9rem; color: #374151; margin-bottom: 1.5rem; line-height: 1.8;">
+                <li>✓ {{ plan.candidate_limit }} candidates</li>
+                <li>✓ ID Verification</li>
+                <li>✓ Education Verification</li>
+                <li>✓ Employment Record</li>
+                {% if plan.includes_criminal_address %}
+                <li>✓ Criminal Verification</li>
+                <li>✓ Address Verification</li>
+                {% endif %}
+            </ul>
+            <button onclick="startBgvPayment({{ plan.id }})" class="dashboard-btn" style="width: 100%; text-align: center; border: none; cursor: pointer;">
+                Choose {{ plan.name }}
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function startBgvPayment(planId) {
+    fetch(`/bgv-plans/${planId}/order/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+    })
+    .then(res => res.json())
+    .then(data => {
+        const options = {
+            key: data.key_id,
+            amount: data.amount,
+            currency: "INR",
+            name: "Deploynix",
+            description: `${data.plan_name} - Background Verification`,
+            order_id: data.order_id,
+            prefill: { email: data.user_email },
+            handler: function (response) {
+                fetch('/bgv-plans/verify/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                        plan_id: planId,
+                    }),
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        window.location.href = result.redirect;
+                    } else {
+                        alert('Payment verification failed. Please contact support.');
+                    }
+                });
+            },
+            theme: { color: "#dc2626" },
+        };
+        const rzp = new Razorpay(options);
+        rzp.open();
+    });
+}
+</script>
+
+{% endblock %}
