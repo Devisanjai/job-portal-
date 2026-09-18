@@ -1,6 +1,8 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.core.exceptions import ValidationError
 from django.utils import timezone 
 from django.db.models.signals import post_save
@@ -52,6 +54,20 @@ class Profile(models.Model):
         return self.user.username
 
 #Job model ---------------------------------------------------------------------------------------------------------------
+class ActiveJobManager(models.Manager):
+    """Default manager with an `.active()` helper returning jobs currently
+    visible to job seekers (approval status is filtered separately)."""
+
+    def active(self):
+        from django.db.models import Q
+        now = timezone.now()
+        return self.get_queryset().filter(
+            is_active=True,
+        ).filter(
+            Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+        )
+
+
 class Job(models.Model):
     EXPERIENCE_CHOICES = [
         ('fresher', 'Fresher'),
@@ -67,6 +83,20 @@ class Job(models.Model):
         ('internship', 'Internship'),
         ('remote', 'Remote'),
         ('Walk-in', 'Walk-in'),
+    ]
+
+    EXPIRY_MONTH_CHOICES = [
+        (2, '2 months'),
+        (3, '3 months'),
+        (6, '6 months'),
+        (12, '12 months'),
+    ]
+
+    INACTIVE_REASON_CHOICES = [
+        ('', 'Active'),
+        ('filled', 'Position Filled'),
+        ('expired', 'Expired'),
+        ('closed', 'Closed by Employer'),
     ]
 
     posted_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posted_jobs')
@@ -87,7 +117,47 @@ class Job(models.Model):
         ('rejected', 'Rejected'),
     ]
     approval_status = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='pending')
-    
+
+    # Auto-expiry / status fields
+    expiry_months = models.PositiveIntegerField(
+        default=2,
+        choices=EXPIRY_MONTH_CHOICES,
+        validators=[MinValueValidator(2)],
+        help_text="The posting is automatically hidden after this long (minimum 2 months).",
+    )
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    inactive_reason = models.CharField(max_length=10, choices=INACTIVE_REASON_CHOICES, default='', blank=True)
+
+    objects = ActiveJobManager()
+
+    def save(self, *args, **kwargs):
+        original = None
+        if self.pk:
+            try:
+                original = Job.objects.get(pk=self.pk)
+            except Job.DoesNotExist:
+                original = None
+
+        # Set/recompute the expiry date on creation or whenever the duration changes.
+        if self.expires_at is None or (original and original.expiry_months != self.expiry_months):
+            base = (original.posted_at if original else self.posted_at) or timezone.now()
+            self.expires_at = base + timedelta(days=self.expiry_months * 30)
+
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return bool(self.expires_at) and self.expires_at <= timezone.now()
+
+    @property
+    def status_label(self):
+        if not self.is_active:
+            return self.get_inactive_reason_display() or 'Closed'
+        if self.is_expired:
+            return 'Expired'
+        return 'Active'
+
     def __str__(self):
         return self.job_title
 

@@ -23,10 +23,11 @@ class JobSeekerProfileAdmin(admin.ModelAdmin):
 #jobAdmin ---------------------------------------------------------------------------------------------------------------
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ('job_title', 'posted_by', 'location', 'job_type', 'experience_required', 'number_of_openings', 'posted_at')
-    list_filter = ('job_type', 'experience_required')
+    list_display = ('job_title', 'posted_by', 'location', 'job_type', 'experience_required', 'number_of_openings', 'approval_status', 'is_active', 'status_label', 'expires_at', 'posted_at')
+    list_filter = ('job_type', 'experience_required', 'approval_status', 'is_active')
     search_fields = ('job_title', 'location', 'skills_required', 'company_name')
     date_hierarchy = 'posted_at'
+    list_editable = ('is_active',)
 
 #jobApplicationAdmin ---------------------------------------------------------------------------------------------------------------
 @admin.register(JobApplication)

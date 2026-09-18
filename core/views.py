@@ -15,7 +15,7 @@ from datetime import timedelta
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from pypdf import PdfReader
@@ -103,7 +103,7 @@ def home(request):
 
     searched = bool(query or location)
     if searched:
-        jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')
+        jobs = Job.objects.active().filter(approval_status='approved').order_by('-posted_at')
         if query:
             jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
         if location:
@@ -131,7 +131,7 @@ def job_vacancies(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
 
-    jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')
+    jobs = Job.objects.active().filter(approval_status='approved').order_by('-posted_at')
 
     if query:
         jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
@@ -589,6 +589,9 @@ def job_detail(request, job_id):
     is_owner = request.user.is_authenticated and request.user == job.posted_by
     base_template = 'core/dashboard_base.html' if is_owner else 'core/base.html'
 
+    if not is_owner and (not job.is_active or job.is_expired):
+        raise Http404("This job posting is no longer available.")
+
     if not is_owner:
         Job.objects.filter(id=job.id).update(views_count=F('views_count') + 1)
         job.refresh_from_db(fields=['views_count'])
@@ -691,6 +694,10 @@ def jobs_list(request):
 @login_required(login_url='job_seeker_login')
 def apply_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
+
+    if not job.is_active or job.is_expired:
+        messages.error(request, 'This job posting is no longer accepting applications.')
+        return redirect('job_vacancies')
 
     if not hasattr(request.user, 'jobseeker_profile'):
         messages.info(
@@ -1156,7 +1163,7 @@ def search_jobs_for_query(query, limit=5):
     """Return a list of approved Job objects relevant to `query`, best matches first."""
     normalised = _chatbot_normalise(query)
     tokens = [t for t in normalised.split() if len(t) > 1 and t not in CHATBOT_STOPWORDS]
-    jobs = Job.objects.filter(approval_status='approved')
+    jobs = Job.objects.active().filter(approval_status='approved')
 
     if tokens:
         search_fields = ('job_title', 'skills_required', 'company_name', 'location', 'job_description')
@@ -1302,7 +1309,7 @@ def chatbot_message(request):
 
     # "Latest jobs" style requests.
     if lowered in LATEST_JOB_PHRASES:
-        jobs = Job.objects.filter(approval_status='approved').order_by('-posted_at')[:5]
+        jobs = Job.objects.active().filter(approval_status='approved').order_by('-posted_at')[:5]
         return JsonResponse({
             'reply': "Here are the most recent openings on Deploynix 👇",
             'jobs': [_chatbot_job_card(job) for job in jobs],
@@ -1606,6 +1613,42 @@ def delete_job(request, job_id):
     messages.success(request, 'Job posting removed.')
     return redirect('jobs_list')
 
+
+#Mark job as filled view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='employer_login')
+@require_POST
+def mark_job_filled(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+
+    if job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('jobs_list')
+
+    job.is_active = False
+    job.inactive_reason = 'filled'
+    job.save(update_fields=['is_active', 'inactive_reason'])
+    messages.success(request, f'"{job.job_title}" marked as filled and hidden from job seekers.')
+    return redirect('jobs_list')
+
+
+#Reactivate a hidden job view ---------------------------------------------------------------------------------------------------------
+@login_required(login_url='employer_login')
+@require_POST
+def reactivate_job(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+
+    if job.posted_by != request.user:
+        messages.error(request, 'You are not authorized to do that.')
+        return redirect('jobs_list')
+
+    job.is_active = True
+    job.inactive_reason = ''
+    job.expires_at = timezone.now() + timedelta(days=job.expiry_months * 30)
+    job.save(update_fields=['is_active', 'inactive_reason', 'expires_at'])
+    messages.success(request, f'"{job.job_title}" is active again.')
+    return redirect('jobs_list')
+
+
 @login_required(login_url='employer_login')
 def candidate_detail(request, application_id):
     application = JobApplication.objects.get(id=application_id)
@@ -1625,7 +1668,7 @@ def internships(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
 
-    jobs = Job.objects.filter(job_type='internship').order_by('-posted_at')
+    jobs = Job.objects.active().filter(job_type='internship').order_by('-posted_at')
 
     if query:
         jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
@@ -1793,6 +1836,9 @@ def unread_notification_count(request):
 @require_POST
 def toggle_save_job(request, job_id):
     job = get_object_or_404(Job, id=job_id)
+    if not job.is_active or job.is_expired:
+        messages.error(request, 'This job posting is no longer available to save.')
+        return redirect('job_vacancies')
     saved, created = SavedJob.objects.get_or_create(user=request.user, job=job)
     if not created:
         saved.delete()
@@ -1805,14 +1851,18 @@ def toggle_save_job(request, job_id):
 #saved jobs view ---------------------------------------------------------------------------------------------------------
 @login_required(login_url='job_seeker_login')
 def saved_jobs_list(request):
-    saved = SavedJob.objects.filter(user=request.user).select_related('job')
+    saved = SavedJob.objects.filter(
+        user=request.user,
+        job__is_active=True,
+        job__expires_at__gt=timezone.now(),
+    ).select_related('job')
     return render(request, 'core/saved_jobs.html', {'saved': saved})
 
 def walkin_jobs(request):
     query = request.GET.get('q', '').strip()
     location = request.GET.get('location', '').strip()
 
-    jobs = Job.objects.filter(job_type='walk-in').order_by('-posted_at')
+    jobs = Job.objects.active().filter(job_type='walk-in').order_by('-posted_at')
 
     if query:
         jobs = jobs.filter(Q(job_title__icontains=query) | Q(skills_required__icontains=query))
