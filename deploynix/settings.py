@@ -1,6 +1,7 @@
 """
 Django settings for deploynix project.
 """
+#IMPORT LIBRARY------------------------------------------------------------------------------------------------------------------
 
 from pathlib import Path
 from decouple import config
@@ -29,7 +30,7 @@ if RENDER_EXTERNAL_HOSTNAME:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
-# Application definition
+# Application definition---------------------------------------------------------------------------------------------------------------
 
 INSTALLED_APPS = [
     'django.contrib.admin',

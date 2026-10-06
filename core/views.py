@@ -73,7 +73,7 @@ SERVICES_DATA = {
     },
 }
 
-#Utility function to generate a unique username for employers based on their company name ------------------------------
+#Utility function to generate a unique username for employers based on their company name ---------------------------------------------------------------------------------------------------------------------------------
 def _generate_employer_username(company_name):
     """Turns a company name into a unique, username-safe slug."""
     base = re.sub(r'[^a-zA-Z0-9]+', '-', company_name).strip('-').lower()
@@ -189,7 +189,12 @@ def employer_login(request):
             password = form.cleaned_data['password']
             company_name = form.cleaned_data['company_name']
 
-            user_obj = User.objects.filter(email__iexact=email).first()
+            user_obj = User.objects.filter(
+                email__iexact=email, profile__is_employer=True
+            ).order_by('id').first()
+
+            if user_obj is None:
+                user_obj = User.objects.filter(email__iexact=email).order_by('id').first()
 
             if user_obj is None:
                 # No account yet — create one automatically
@@ -212,7 +217,7 @@ def employer_login(request):
                         plan=free_plan,
                         expires_at=timezone.now() + timedelta(days=free_plan.duration_days),
                     )
-
+                    
                 # Notify all superusers about the new employer
                 for admin_user in User.objects.filter(is_superuser=True):
                     create_notification(
@@ -255,6 +260,7 @@ def employer_login(request):
     return render(request, 'core/employer_login.html', {'form': form})
 
 #Employer Dashboard view ---------------------------------------------------------------------------------------------------------
+
 @login_required(login_url='employer_login')
 def employer_dashboard(request):
     jobs = Job.objects.filter(posted_by=request.user)
@@ -263,10 +269,10 @@ def employer_dashboard(request):
     upcoming_interviews = interviews.filter(status='scheduled')[:5]
 
     # Paginate recent candidates (5 per page)
+    
     paginator = Paginator(applications, 5)
     page_number = request.GET.get('page', 1)
     recent_candidates = paginator.get_page(page_number)
-
     context = {
         'jobs_posted_count': jobs.count(),
         'applicants_total': applications.count(),
@@ -279,8 +285,8 @@ def employer_dashboard(request):
     }
     return render(request, 'core/employer_dashboard.html', context)
 
-
 #Company Profile view ---------------------------------------------------------------------------------------------------------
+
 @login_required(login_url='employer_login')
 def company_profile(request):
     profile, created = Profile.objects.get_or_create(
@@ -353,6 +359,7 @@ def _send_signup_otp_email(pending):
         return False
 
 #Job Seeker Login view ---------------------------------------------------------------------------------------------------------
+
 def job_seeker_login(request):
     next_url = request.POST.get('next') or request.GET.get('next') or 'home'
     if request.method == 'POST':
